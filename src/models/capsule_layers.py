@@ -84,7 +84,7 @@ def dynamic_routing(votes,
     pre_act_trans = tf.transpose(pre_act_unrolled, r_t_shape)
     pre_act = tf.reduce_sum(pre_act_trans, axis=1) + biases
     activated = act_fn(pre_act)
-    activations_new = activations_.write(i, activated)
+    activations_ = activations_.write(i, activated)
 
     act_3d = tf.expand_dims(activated, 1)
     tile_shape = list(np.ones(num_dims, dtype=np.int32))
@@ -95,7 +95,7 @@ def dynamic_routing(votes,
     distances = tf.reduce_sum(votes * act_tiled, axis=3)
     logits_ += distances
 
-    return i_route + 1, logits_, activations_new
+    return i_route + 1, logits_, activations_
 
   activations = tf.TensorArray(
       dtype=tf.float32, size=num_routing, clear_after_read=False)
@@ -155,8 +155,8 @@ class Capsule(ModelBase):
     self.output_atoms = output_atoms
     self.num_routing = num_routing
     self.leaky = leaky
-    self.act_fn_name = act_fn
-    self.act_fn = squash if act_fn == 'squash' else None
+    self.act_fn = act_fn
+    self.act_function = squash if act_fn == 'squash' else None
     self.idx = idx
 
   def __call__(self, inputs):
@@ -215,7 +215,7 @@ class Capsule(ModelBase):
                 num_dims=4,
                 input_dim=input_dim,
                 output_dim=self.output_dim,
-                act_fn=self.act_fn,
+                act_fn=self.act_function,
                 num_routing=self.num_routing,
                 leaky=self.leaky)
 
@@ -273,8 +273,8 @@ class ConvSlimCapsule(ModelBase):
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
-    self.act_fn_name = act_fn
-    self.act_fn = squash if act_fn == 'squash' else None
+    self.act_fn = act_fn
+    self.act_function = squash if act_fn == 'squash' else None
     self.idx = idx
 
   def _depthwise_conv3d(self, input_tensor, kernel):
@@ -384,7 +384,7 @@ class ConvSlimCapsule(ModelBase):
             num_dims=6,
             input_dim=input_dim,
             output_dim=self.output_dim,
-            act_fn=self.act_fn,
+            act_fn=self.act_function,
             num_routing=self.num_routing,
             leaky=self.leaky)
 
