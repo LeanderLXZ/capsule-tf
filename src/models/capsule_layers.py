@@ -172,7 +172,7 @@ class Capsule(ModelBase):
     """
     with tf.variable_scope('caps_{}'.format(self.idx)):
 
-        batch_size, input_dim, input_atoms = inputs.get_shape()
+        batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
 
         # weights_initializer = tf.contrib.layers.xavier_initializer()
         # biases_initializer = tf.zeros_initializer()
@@ -302,7 +302,7 @@ class ConvSlimCapsule(ModelBase):
     """
     with tf.name_scope('conv'):
       batch_size, input_dim, input_atoms, \
-          input_height, input_width = input_tensor.get_shape()
+          input_height, input_width = input_tensor.get_shape().as_list()
 
       # Reshape input_tensor to 4D by merging first two dimensions.
       # tf.nn.conv2d only accepts 4D tensors.
@@ -310,7 +310,7 @@ class ConvSlimCapsule(ModelBase):
         batch_size * input_dim, input_atoms, input_height, input_width
       ])
       input_tensor_reshaped.set_shape(
-          (batch_size, input_atoms, input_height.value, input_width.value))
+          (batch_size, input_atoms, input_height, input_width))
       conv = tf.nn.conv2d(
           input_tensor_reshaped,
           kernel,
@@ -318,7 +318,7 @@ class ConvSlimCapsule(ModelBase):
           padding=self.padding,
           data_format='NCHW')
       conv_shape = tf.shape(conv)
-      _, _, conv_height, conv_width = conv.get_shape()
+      _, _, conv_height, conv_width = conv.get_shape().as_list()
       # Reshape back to 6D by splitting first dimension to batch and input_dim
       # and splitting second dimension to output_dim and output_atoms.
 
@@ -328,7 +328,7 @@ class ConvSlimCapsule(ModelBase):
       ])
       conv_reshaped.set_shape((
         batch_size, input_dim, self.output_dim,
-        self.output_atoms, conv_height.value, conv_width.value
+        self.output_atoms, conv_height, conv_width
       ))
       return conv_reshaped, conv_shape
 
@@ -348,7 +348,7 @@ class ConvSlimCapsule(ModelBase):
     """
     with tf.variable_scope('caps_{}'.format(self.idx)):
 
-      batch_size, input_dim, input_atoms, _, _ = inputs.get_shape()
+      batch_size, input_dim, input_atoms, _, _ = inputs.get_shape().as_list()
 
       # weights_initializer = tf.contrib.layers.xavier_initializer()
       # biases_initializer = tf.zeros_initializer()
@@ -433,7 +433,7 @@ class Capsule5Dto3D(ModelBase):
       output tensor of shape
       `[batch, new_input_dim, input_atoms]`.
     """
-    batch_size, _, atoms, _, _ = inputs.get_shape()
+    batch_size, _, atoms, _, _ = inputs.get_shape().as_list()
     output = tf.transpose(inputs, [0, 1, 3, 4, 2])
     self.output = tf.reshape(output, [batch_size, -1, atoms])
     return self.output
