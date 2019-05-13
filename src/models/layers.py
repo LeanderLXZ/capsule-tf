@@ -74,7 +74,7 @@ class ModelBase(object):
   @property
   def params(self):
     """Get parameters of this layer."""
-    pop_key_list = ['cfg', 'output', 'is_training', 'labels']
+    pop_key_list = ['cfg', 'output', 'is_training', 'labels', 'act_function']
     return {item[0]: item[1] for item in self.__dict__.items()
             if item[0] not in pop_key_list}
 
