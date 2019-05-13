@@ -48,10 +48,10 @@ __C.LR_DECAY_STEPS = 2000
 __C.LR_DECAY_RATE = 0.96
 
 # Epochs
-__C.EPOCHS = 50
+__C.EPOCHS = 20
 
 # Batch size
-__C.BATCH_SIZE = 2048
+__C.BATCH_SIZE = 512
 
 
 # ===========================================
@@ -264,7 +264,7 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
-__C.TOP_N_LIST = [5, 10, 20]
+__C.TOP_N_LIST = [2, 5]
 
 # -------------------------------------------
 # Multi-objects detection

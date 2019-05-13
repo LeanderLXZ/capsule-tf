@@ -84,7 +84,7 @@ def dynamic_routing(votes,
     pre_act_trans = tf.transpose(pre_act_unrolled, r_t_shape)
     pre_act = tf.reduce_sum(pre_act_trans, axis=1) + biases
     activated = act_fn(pre_act)
-    activations_new = activations_.write(i, activated)
+    activations_new = activations_.write(i_route, activated)
 
     act_3d = tf.expand_dims(activated, 1)
     tile_shape = list(np.ones(num_dims, dtype=np.int32))
