@@ -32,6 +32,9 @@ __C.DATABASE_NAME = 'mnist'
 # __C.DATABASE_MODE = 'small'
 __C.DATABASE_MODE = None
 
+# Database name for fine-tuning
+__C.FT_DATABASE_NAME = 'mnist'
+
 # Training version
 # Set None to auto generate version
 __C.VERSION = 'baseline'

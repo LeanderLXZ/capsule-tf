@@ -13,11 +13,13 @@ class Model(object):
 
   def __init__(self,
                cfg,
-               model_arch):
+               model_arch,
+               restore_vars_dict=None):
 
     self.cfg = cfg
     self.batch_size = cfg.BATCH_SIZE
     self.model_arch = model_arch
+    self.restore_vars_dict = restore_vars_dict
     self.model_arch_info = None
 
   def _get_inputs(self,
@@ -102,7 +104,8 @@ class Model(object):
     """
     loss, clf_loss, clf_preds, rec_loss, rec_imgs, self.model_arch_info = \
         self.model_arch(inputs, labels, input_imgs,
-                        self.cfg, is_training=is_training)
+                        self.cfg, is_training=is_training,
+                        restore_vars_dict=self.restore_vars_dict)
 
     # Accuracy
     correct_pred = tf.equal(
@@ -175,8 +178,9 @@ class ModelDistribute(Model):
 
   def __init__(self,
                cfg,
-               model_arch):
-    super(ModelDistribute, self).__init__(cfg, model_arch)
+               model_arch,
+               restore_vars_dict=None):
+    super(ModelDistribute, self).__init__(cfg, model_arch, restore_vars_dict)
     self.batch_size = cfg.BATCH_SIZE // cfg.GPU_NUMBER
 
   @staticmethod
@@ -391,8 +395,11 @@ class ModelDistribute(Model):
 
 class ModelMultiTasks(ModelDistribute):
 
-  def __init__(self, cfg, model_arch):
-    super(ModelMultiTasks, self).__init__(cfg, model_arch)
+  def __init__(self,
+               cfg,
+               model_arch,
+               restore_vars_dict=None):
+    super(ModelMultiTasks, self).__init__(cfg, model_arch, restore_vars_dict)
     self.batch_size = cfg.BATCH_SIZE // cfg.GPU_NUMBER // cfg.TASK_NUMBER
 
   @staticmethod

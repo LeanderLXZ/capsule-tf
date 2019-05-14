@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from models.variables import tf_variable
+from models.variables import tf_variable, tf_variable_assign
 
 
 def get_act_fn(act_fn):
@@ -58,11 +58,8 @@ class Sequential(object):
     """The architecture information of the models."""
     return self._info
 
-  def get_loss(self, loss_fn, labels, name='clf', **loss_fn_params):
-    with tf.variable_scope(name):
-      loss, preds = loss_fn(self._top, labels, **loss_fn_params)
-      loss = tf.identity(loss, name=name+'_loss')
-      preds = tf.identity(preds, name=name+'_preds')
+  def get_loss(self, loss_fn, labels, **loss_fn_params):
+    loss, preds = loss_fn(self._top, labels, **loss_fn_params)
     return loss, preds
   
   def add_name(self, name):
@@ -73,17 +70,74 @@ class ModelBase(object):
 
   def __init__(self):
     self.output = None
+    self.assign_vars = False
+    self.weights = None
+    self.biases = None
 
   @property
   def params(self):
     """Get parameters of this layer."""
-    pop_key_list = ['cfg', 'output', 'is_training', 'labels', 'act_function']
+    pop_key_list = [
+      'cfg', 'output', 'is_training', 'labels',
+      'act_function', 'weights', 'biases'
+    ]
     return {item[0]: item[1] for item in self.__dict__.items()
             if item[0] not in pop_key_list}
 
   @property
   def output_shape(self):
     return self.output.get_shape().as_list()
+
+  def assign_variables(self, weights, biases):
+    self.assign_vars = True
+    self.weights = weights
+    self.biases = biases
+
+  def _get_variables(self,
+                     use_bias=True,
+                     weights_shape=None,
+                     biases_shape=None,
+                     weights_initializer=tf.contrib.layers.xavier_initializer(),
+                     biases_initializer=tf.zeros_initializer(),
+                     store_on_cpu=True):
+    if self.assign_vars:
+      assert weights_shape == self.weights.shape, \
+        'Shapes of weights are not matched: {} & {}'.format(
+            weights_shape, self.weights.shape)
+      weights = tf_variable_assign(
+          initial_value=self.weights,
+          store_on_cpu=store_on_cpu,
+          name='weights'
+      )
+    else:
+      weights = tf_variable(
+          name='weights',
+          shape=weights_shape,
+          initializer=weights_initializer,
+          store_on_cpu=store_on_cpu
+      )
+
+    if use_bias:
+      if self.assign_vars:
+        assert biases_shape == self.biases.shape, \
+          'Shapes of biases are not matched: {} & {}'.format(
+              biases_shape, self.biases.shape)
+        biases = tf_variable_assign(
+              initial_value=self.biases,
+              store_on_cpu=store_on_cpu,
+              name='biases'
+        )
+      else:
+        biases = tf_variable(
+            name='biases',
+            shape=biases_shape,
+            initializer=biases_initializer,
+            store_on_cpu=store_on_cpu
+        )
+    else:
+      biases = None
+
+    return weights, biases
 
 
 class Dense(ModelBase):
@@ -130,21 +184,18 @@ class Dense(ModelBase):
       # biases_initializer = tf.constant_initializer(0.1) \
       #     if self.use_bias else None
 
-      weights = tf_variable(
-          name='weights',
-          shape=[inputs.get_shape().as_list()[1], self.output_dim],
-          initializer=weights_initializer,
+      weights, biases = self._get_variables(
+          use_bias=self.use_bias,
+          weights_shape=[inputs.get_shape().as_list()[1], self.output_dim],
+          biases_shape=[self.output_dim],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
+
       self.output = tf.matmul(inputs, weights)
 
       if self.use_bias:
-        biases = tf_variable(
-            name='biases',
-            shape=[self.output_dim],
-            initializer=biases_initializer,
-            store_on_cpu=self.cfg.VAR_ON_CPU
-        )
         self.output = tf.add(self.output, biases)
 
       if activation_fn is not None:
@@ -230,26 +281,23 @@ class Conv(ModelBase):
       # biases_initializer = tf.constant_initializer(0.1) \
       #     if self.use_bias else None
 
-      kernel = tf_variable(
-          name='weights',
-          shape=[self.kernel_size, self.kernel_size,
-                 inputs.get_shape().as_list()[1], self.n_kernel],
-          initializer=weights_initializer,
+      weights, biases = self._get_variables(
+          use_bias=self.use_bias,
+          weights_shape=[self.kernel_size, self.kernel_size,
+                         inputs.get_shape().as_list()[1], self.n_kernel],
+          biases_shape=[self.n_kernel],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
+
       self.output = tf.nn.conv2d(input=inputs,
-                                 filter=kernel,
+                                 filter=weights,
                                  strides=[1, self.stride, self.stride, 1],
                                  padding=self.padding,
                                  data_format='NCHW')
 
       if self.use_bias:
-        biases = tf_variable(
-            name='biases',
-            shape=[self.n_kernel],
-            initializer=biases_initializer,
-            store_on_cpu=self.cfg.VAR_ON_CPU
-        )
         self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
 
       if activation_fn is not None:
@@ -315,16 +363,19 @@ class ConvT(ModelBase):
       # biases_initializer = tf.constant_initializer(0.1) \
       #     if self.use_bias else None
 
-      kernel = tf_variable(
-          name='weights',
-          shape=[self.kernel_size, self.kernel_size,
-                 self.n_kernel, inputs.get_shape().as_list()[1]],
-          initializer=weights_initializer,
+      weights, biases = self._get_variables(
+          use_bias=self.use_bias,
+          weights_shape=[self.kernel_size, self.kernel_size,
+                         self.n_kernel, inputs.get_shape().as_list()[1]],
+          biases_shape=[self.n_kernel],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
+
       self.output = tf.nn.conv2d_transpose(
           value=inputs,
-          filter=kernel,
+          filter=weights,
           output_shape=self.conv_t_output_shape,
           strides=[1, self.stride, self.stride, 1],
           padding=self.padding,
@@ -332,12 +383,6 @@ class ConvT(ModelBase):
       )
 
       if self.use_bias:
-        biases = tf_variable(
-            name='biases',
-            shape=[self.n_kernel],
-            initializer=biases_initializer,
-            store_on_cpu=self.cfg.VAR_ON_CPU
-        )
         self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
 
       if activation_fn is not None:

@@ -164,29 +164,29 @@ class Test(object):
       if self.multi_gpu:
         accuracy_ = loaded_graph.get_tensor_by_name('total_acc:0')
         loss_ = loaded_graph.get_tensor_by_name('total_loss:0')
-        preds_ = loaded_graph.get_tensor_by_name('total_preds:0')
+        clf_preds_ = loaded_graph.get_tensor_by_name('total_clf_preds:0')
         if self.cfg.TEST_WITH_REC:
           clf_loss_ = loaded_graph.get_tensor_by_name('total_clf_loss:0')
           rec_loss_ = loaded_graph.get_tensor_by_name('total_rec_loss:0')
-          rec_images_ = loaded_graph.get_tensor_by_name('total_rec_images:0')
-          return inputs_, labels_, input_imgs_, is_training, preds_, loss_, \
-              accuracy_, clf_loss_, rec_loss_, rec_images_
+          rec_imgs_ = loaded_graph.get_tensor_by_name('total_rec_imgs:0')
+          return inputs_, labels_, input_imgs_, is_training, \
+              loss_, accuracy_, clf_loss_, clf_preds_, rec_loss_, rec_imgs_
         else:
           return inputs_, labels_, input_imgs_, is_training, \
-              preds_, loss_, accuracy_
+              clf_preds_, loss_, accuracy_
       else:
         accuracy_ = loaded_graph.get_tensor_by_name('accuracy:0')
         loss_ = loaded_graph.get_tensor_by_name('loss:0')
-        preds_ = loaded_graph.get_tensor_by_name('preds:0')
+        clf_preds_ = loaded_graph.get_tensor_by_name('clf_preds:0')
         if self.cfg.TEST_WITH_REC:
           clf_loss_ = loaded_graph.get_tensor_by_name('clf_loss:0')
           rec_loss_ = loaded_graph.get_tensor_by_name('rec_loss:0')
-          rec_images_ = loaded_graph.get_tensor_by_name('rec_images:0')
-          return inputs_, labels_, input_imgs_, is_training, preds_, loss_, \
-              accuracy_, clf_loss_, rec_loss_, rec_images_
+          rec_imgs_ = loaded_graph.get_tensor_by_name('rec_imgs:0')
+          return inputs_, labels_, input_imgs_, is_training, \
+              loss_, accuracy_, clf_loss_, clf_preds_, rec_loss_, rec_imgs_
         else:
-          return inputs_, labels_, input_imgs_, is_training,\
-              preds_, loss_, accuracy_
+          return inputs_, labels_, input_imgs_, is_training, \
+              clf_preds_, loss_, accuracy_
 
   def _get_top_n_accuracy(self, preds_vec):
     """Get top N accuracy."""
@@ -227,7 +227,7 @@ class Test(object):
 
   def _save_images(self,
                    sess,
-                   rec_images,
+                   rec_imgs,
                    inputs,
                    labels,
                    is_training,
@@ -236,12 +236,12 @@ class Test(object):
                    imgs,
                    step=None):
     """Save reconstructed images."""
-    rec_images_ = sess.run(
-        rec_images, feed_dict={inputs: x, labels: y, is_training: False})
+    rec_imgs_ = sess.run(
+        rec_imgs, feed_dict={inputs: x, labels: y, is_training: False})
 
     utils.save_imgs(
         real_imgs=imgs,
-        rec_imgs=rec_images_,
+        rec_imgs=rec_imgs_,
         img_path=self.test_image_path,
         database_name=self.cfg.DATABASE_NAME,
         max_img_in_col=self.cfg.MAX_IMAGE_IN_COL,
@@ -260,7 +260,7 @@ class Test(object):
                        acc,
                        clf_loss,
                        rec_loss,
-                       rec_images):
+                       rec_imgs):
     """Calculate losses and accuracies of full train set."""
     pred_all = []
     loss_all = []
@@ -302,7 +302,7 @@ class Test(object):
           # Save reconstruct images
           if self.cfg.TEST_SAVE_IMAGE_STEP:
             if step % self.cfg.TEST_SAVE_IMAGE_STEP == 0:
-              self._save_images(sess, rec_images, inputs, labels, is_training,
+              self._save_images(sess, rec_imgs, inputs, labels, is_training,
                                 x_batch, y_batch, imgs_batch, step=step)
         else:
           # The last batch which has less examples
@@ -357,24 +357,24 @@ class Test(object):
     return preds_vec, loss_, clf_loss_, rec_loss_, acc_
 
   def tester(self, sess, inputs, labels, input_imgs,
-             is_training, preds, rec_images, start_time,
+             is_training, clf_preds, rec_imgs, start_time,
              loss=None, acc=None, clf_loss=None, rec_loss=None):
 
     utils.thin_line()
     print('Calculating loss and accuracy of test set...')
 
     # Get losses and accuracies
-    preds_vec_test, loss_test, clf_loss_test, rec_loss_test, acc_test = \
+    clf_preds_vec_test, loss_test, clf_loss_test, rec_loss_test, acc_test = \
         self._eval_on_batches(
-            sess, inputs, labels, input_imgs, is_training, preds,
-            loss, acc, clf_loss, rec_loss, rec_images)
+            sess, inputs, labels, input_imgs, is_training, clf_preds,
+            loss, acc, clf_loss, rec_loss, rec_imgs)
 
     # Get integer predictions
-    _ = self._get_preds_int(preds_vec=preds_vec_test)
+    _ = self._get_preds_int(preds_vec=clf_preds_vec_test)
 
     # Get top N accuracy
     if self.cfg.TOP_N_LIST is not None:
-      acc_top_n_list = self._get_top_n_accuracy(preds_vec_test)
+      acc_top_n_list = self._get_top_n_accuracy(clf_preds_vec_test)
     else:
       acc_top_n_list = None
 
@@ -425,16 +425,16 @@ class Test(object):
 
       # Get Tensors from loaded models
       if self.cfg.TEST_WITH_REC:
-        inputs, labels, input_imgs, is_training, preds, \
-            loss, acc, clf_loss, rec_loss, rec_images = \
+        inputs, labels, input_imgs, is_training, \
+            loss, acc, clf_loss, clf_preds, rec_loss, rec_imgs = \
             self._get_tensors(loaded_graph)
       else:
-        inputs, labels, input_imgs, is_training, preds, loss, acc = \
+        inputs, labels, input_imgs, is_training, clf_preds, loss, acc = \
             self._get_tensors(loaded_graph)
-        clf_loss, rec_loss, rec_images = None, None, None
+        clf_loss, rec_loss, rec_imgs = None, None, None
 
-      self.tester(sess, inputs, labels, input_imgs, is_training, preds,
-                  rec_images, start_time, loss=loss, acc=acc,
+      self.tester(sess, inputs, labels, input_imgs, is_training,
+                  clf_preds, rec_imgs, start_time, loss=loss, acc=acc,
                   clf_loss=clf_loss, rec_loss=rec_loss)
 
 
@@ -476,19 +476,21 @@ class TestMultiObjects(Test):
       is_training = loaded_graph.get_tensor_by_name('is_training:0')
 
       if self.multi_gpu:
-        preds_ = loaded_graph.get_tensor_by_name('total_preds:0')
+        clf_preds_ = loaded_graph.get_tensor_by_name('total_clf_preds:0')
         if self.cfg.TEST_WITH_REC:
-          rec_images_ = loaded_graph.get_tensor_by_name('total_rec_images:0')
-          return inputs_, labels_, input_imgs_, is_training, preds_, rec_images_
+          rec_imgs_ = loaded_graph.get_tensor_by_name('total_rec_imgs:0')
+          return inputs_, labels_, input_imgs_, \
+              is_training, clf_preds_, rec_imgs_
         else:
-          return inputs_, labels_, input_imgs_, is_training, preds_
+          return inputs_, labels_, input_imgs_, is_training, clf_preds_
       else:
-        preds_ = loaded_graph.get_tensor_by_name('preds:0')
+        clf_preds_ = loaded_graph.get_tensor_by_name('clf_preds:0')
         if self.cfg.TEST_WITH_REC:
-          rec_images_ = loaded_graph.get_tensor_by_name('rec_images:0')
-          return inputs_, labels_, input_imgs_, is_training, preds_, rec_images_
+          rec_imgs_ = loaded_graph.get_tensor_by_name('rec_imgs:0')
+          return inputs_, labels_, input_imgs_, \
+              is_training, clf_preds_, rec_imgs_
         else:
-          return inputs_, labels_, input_imgs_, is_training, preds_
+          return inputs_, labels_, input_imgs_, is_training, clf_preds_
 
   def _get_preds_vector(self,
                         sess,
@@ -678,7 +680,7 @@ class TestMultiObjects(Test):
 
   def _save_images_mo(self,
                       sess,
-                      rec_images,
+                      rec_imgs,
                       inputs,
                       labels,
                       is_training,
@@ -693,7 +695,7 @@ class TestMultiObjects(Test):
     else:
       test_img_idx = list(range(len(self.y_test)))
 
-    rec_images_ = []
+    rec_imgs_ = []
     preds_vec_ = []
 
     if self.cfg.LABEL_FOR_TEST == 'pred':
@@ -745,18 +747,17 @@ class TestMultiObjects(Test):
 
       # Get remake images which contain different objects
       # y_rec_imgs_ shape: [128, 28, 28, 1] for mnist
-      y_rec_imgs_ = sess.run(
-          rec_images, feed_dict={inputs: x_new,
-                                 labels: y_hat_new,
-                                 is_training: False})
-      rec_images_.append(y_rec_imgs_[:n_y])
+      y_rec_imgs_ = sess.run(rec_imgs, feed_dict={inputs: x_new,
+                                                  labels: y_hat_new,
+                                                  is_training: False})
+      rec_imgs_.append(y_rec_imgs_[:n_y])
 
     # Get colorful overlapped images
     real_imgs_ = utils.img_black_to_color(
         self.imgs_test[test_img_idx], same=True)
     rec_imgs_overlap = []
     rec_imgs_no_overlap = []
-    for idx, imgs in enumerate(rec_images_):
+    for idx, imgs in enumerate(rec_imgs_):
       imgs_colored = utils.img_black_to_color(imgs)
       imgs_overlap = utils.img_add_overlap(
           imgs=imgs_colored,
@@ -800,25 +801,26 @@ class TestMultiObjects(Test):
     )
 
   def tester(self, sess, inputs, labels, input_imgs,
-             is_training, preds, rec_images, start_time,
+             is_training, clf_preds, rec_imgs, start_time,
              loss=None, acc=None, clf_loss=None, rec_loss=None):
 
     utils.thin_line()
     print('Calculating loss and accuracy of test set...')
 
     # Get losses and accuracies
-    preds_vec_test = self._get_preds_vector(sess, inputs, preds, is_training)
+    clf_preds_vec_test = self._get_preds_vector(
+        sess, inputs, clf_preds, is_training)
 
     # Get binary predictions
-    preds_binary = self._get_preds_binary(preds_vec=preds_vec_test)
+    clf_preds_binary = self._get_preds_binary(preds_vec=clf_preds_vec_test)
 
     # Get evaluation scores for multi-objects detection.
-    self._get_multi_obj_scores(preds_binary, preds_vec_test)
+    self._get_multi_obj_scores(clf_preds_binary, clf_preds_vec_test)
 
     # Save reconstruction images of multi-objects detection
     if self.cfg.TEST_WITH_REC:
-      self._save_images_mo(sess, rec_images, inputs, labels,
-                           is_training, preds_binary, preds_vec_test)
+      self._save_images_mo(sess, rec_imgs, inputs, labels, is_training,
+                           clf_preds_binary, clf_preds_vec_test)
 
     utils.thin_line()
     print('Testing finished! Using time: {:.2f}'
@@ -842,12 +844,12 @@ class TestMultiObjects(Test):
 
       # Get Tensors from loaded models
       if self.cfg.TEST_WITH_REC:
-        inputs, labels, input_imgs, is_training, preds, rec_images = \
+        inputs, labels, input_imgs, is_training, clf_preds, rec_imgs = \
             self._get_tensors(loaded_graph)
       else:
-        inputs, labels, input_imgs, is_training, preds = \
+        inputs, labels, input_imgs, is_training, clf_preds = \
             self._get_tensors(loaded_graph)
-        rec_images = None
+        rec_imgs = None
 
       self.tester(sess, inputs, labels, input_imgs, is_training,
-                  preds, rec_images, start_time)
+                  clf_preds, rec_imgs, start_time)

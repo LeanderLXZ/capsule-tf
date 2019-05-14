@@ -23,24 +23,31 @@ from baseline_arch import model_arch as basel_arch
 
 class Main(object):
 
-  def __init__(self, cfg, model_architecture, mode='normal'):
+  def __init__(self, cfg, model_architecture, mode='normal', fine_tune=False):
     """Load data and initialize models."""
     # Global start time
     self.start_time = time.time()
 
     # Config
     self.cfg = cfg
+    self.fine_tune = fine_tune
     self.multi_gpu = True
+
+    # Restore a pre-trained model
+    if self.fine_tune:
+      restore_vars_dict = self._get_restore_vars_dict()
+    else:
+      restore_vars_dict = None
 
     if mode == 'multi-tasks':
       self.multi_gpu = True
-      self.model = ModelMultiTasks(cfg, model_architecture)
+      self.model = ModelMultiTasks(cfg, model_architecture, restore_vars_dict)
     elif mode == 'multi-gpu':
       self.multi_gpu = True
-      self.model = ModelDistribute(cfg, model_architecture)
+      self.model = ModelDistribute(cfg, model_architecture, restore_vars_dict)
     else:
       self.multi_gpu = False
-      self.model = Model(cfg, model_architecture)
+      self.model = Model(cfg, model_architecture, restore_vars_dict)
 
     # Use encode transfer learning
     if self.cfg.TRANSFER_LEARNING == 'encode':
@@ -78,15 +85,23 @@ class Main(object):
 
   def _get_paths(self):
     """Get paths from configuration."""
-    train_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.cfg.VERSION)
-    summary_path_ = join(self.cfg.SUMMARY_PATH, self.cfg.VERSION)
-    checkpoint_path_ = join(self.cfg.CHECKPOINT_PATH, self.cfg.VERSION)
-
     if self.cfg.DATABASE_MODE is not None:
       preprocessed_path = join(
           '../data/{}'.format(self.cfg.DATABASE_MODE), self.cfg.DATABASE_NAME)
     else:
       preprocessed_path = join(self.cfg.DPP_DATA_PATH, self.cfg.DATABASE_NAME)
+
+    # Fine-tuning
+    if self.fine_tune:
+      preprocessed_path = join(
+          self.cfg.DPP_DATA_PATH, self.cfg.FT_DATABASE_NAME)
+      self.restore_checkpoint_path = join(
+          self.cfg.CHECKPOINT_PATH, self.cfg.VERSION)
+      self.cfg.VERSION = self.cfg.VERSION + '_fine-tune'
+
+    train_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.cfg.VERSION)
+    summary_path_ = join(self.cfg.SUMMARY_PATH, self.cfg.VERSION)
+    checkpoint_path_ = join(self.cfg.CHECKPOINT_PATH, self.cfg.VERSION)
 
     # Get log paths, append information if the directory exist.
     train_log_path = train_log_path_
@@ -153,6 +168,32 @@ class Main(object):
         imgs_valid.shape))
 
     return x_train, y_train, imgs_train, x_valid, y_valid, imgs_valid
+
+  def _get_restore_vars_dict(self):
+    """Load pre-trained variables."""
+    tf.reset_default_graph()
+    loaded_graph = tf.Graph()
+
+    with tf.Session(graph=loaded_graph) as sess:
+      ckp_path = tf.train.latest_checkpoint(self.restore_checkpoint_path)
+      loader = tf.train.import_meta_graph(ckp_path + '.meta')
+      loader.restore(sess, ckp_path)
+
+      restore_vars_dict = dict()
+      restore_vars_dict['w_conv_0'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/conv_0/weights:0'))
+      restore_vars_dict['b_conv_0'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/conv_0/biases:0'))
+      restore_vars_dict['w_caps_0'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/caps_0/weights:0'))
+      restore_vars_dict['b_caps_0'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/caps_0/biases:0'))
+      restore_vars_dict['w_caps_1'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/caps_1/weights:0'))
+      restore_vars_dict['b_caps_1'] = sess.run(
+          loaded_graph.get_tensor_by_name('classifier/caps_1/biases:0'))
+
+      return restore_vars_dict
 
   def _display_status(self,
                       sess,
@@ -610,6 +651,8 @@ if __name__ == '__main__':
                       help="Run multi-tasks version.")
   parser.add_argument('-b', '--baseline', action="store_true",
                       help="Use baseline architecture and configurations.")
+  parser.add_argument('-ft', '--fine_tune', action="store_true",
+                      help="Use baseline architecture and configurations.")
   args = parser.parse_args()
 
   if args.mtask:
@@ -645,4 +688,6 @@ if __name__ == '__main__':
   if args.task_number:
     config_.TASK_NUMBER = args.task_number
 
-  Main(config_, arch_, mode=mode_).train()
+  fine_tune_ = True if args.fine_tune else False
+
+  Main(config_, arch_, mode=mode_, fine_tune=fine_tune_).train()

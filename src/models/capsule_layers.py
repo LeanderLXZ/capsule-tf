@@ -5,7 +5,6 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from models.variables import tf_variable
 from models.layers import ModelBase
 
 
@@ -180,17 +179,13 @@ class Capsule(ModelBase):
             stddev=0.1, dtype=tf.float32)
         biases_initializer = tf.constant_initializer(0.1)
 
-        weights = tf_variable(
-            name='weights',
-            shape=[input_dim, input_atoms,
-                   self.output_dim * self.output_atoms],
-            initializer=weights_initializer,
-            store_on_cpu=self.cfg.VAR_ON_CPU
-        )
-        biases = tf_variable(
-            name='biases',
-            shape=[self.output_dim, self.output_atoms],
-            initializer=biases_initializer,
+        weights, biases = self._get_variables(
+            use_bias=True,
+            weights_shape=[input_dim, input_atoms,
+                           self.output_dim * self.output_atoms],
+            biases_shape=[self.output_dim, self.output_atoms],
+            weights_initializer=weights_initializer,
+            biases_initializer=biases_initializer,
             store_on_cpu=self.cfg.VAR_ON_CPU
         )
 
@@ -356,21 +351,17 @@ class ConvSlimCapsule(ModelBase):
           stddev=0.1, dtype=tf.float32)
       biases_initializer = tf.constant_initializer(0.1)
 
-      kernel = tf_variable(
-          name='weights',
-          shape=[self.kernel_size, self.kernel_size,
-                 input_atoms, self.output_dim * self.output_atoms],
-          initializer=weights_initializer,
-          store_on_cpu=self.cfg.VAR_ON_CPU
-      )
-      biases = tf_variable(
-          name='biases',
-          shape=[self.output_dim, self.output_atoms, 1, 1],
-          initializer=biases_initializer,
+      weights, biases = self._get_variables(
+          use_bias=True,
+          weights_shape=[self.kernel_size, self.kernel_size,
+                         input_atoms, self.output_dim * self.output_atoms],
+          biases_shape=[self.output_dim, self.output_atoms, 1, 1],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
 
-      votes, votes_shape = self._depthwise_conv3d(inputs, kernel)
+      votes, votes_shape = self._depthwise_conv3d(inputs, weights)
 
       with tf.name_scope('routing'):
         logit_shape = tf.stack([
