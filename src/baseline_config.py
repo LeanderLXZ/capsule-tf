@@ -51,7 +51,7 @@ __C.LR_DECAY_STEPS = 2000
 __C.LR_DECAY_RATE = 0.96
 
 # Epochs
-__C.EPOCHS = 20
+__C.EPOCHS = 50
 
 # Batch size
 __C.BATCH_SIZE = 512
@@ -172,7 +172,7 @@ __C.DECODER_TYPE = 'fc'
 __C.REC_LOSS = 'ce'
 
 # Scaling for reconstruction loss
-__C.REC_LOSS_SCALE = 0.392  # 0.0005*32*32=0.512  # 0.0005*784=0.392
+__C.REC_LOSS_SCALE = 0.0005  # 0.0005*32*32=0.512  # 0.0005*784=0.392
 
 # -------------------------------------------
 # Transfer Learning
