@@ -58,12 +58,15 @@ class Sequential(object):
     """The architecture information of the models."""
     return self._info
 
-  def get_loss(self, loss_fn, labels, name='classifier', **loss_fn_params):
+  def get_loss(self, loss_fn, labels, name='clf', **loss_fn_params):
     with tf.variable_scope(name):
       loss, preds = loss_fn(self._top, labels, **loss_fn_params)
       loss = tf.identity(loss, name=name+'_loss')
       preds = tf.identity(preds, name=name+'_preds')
     return loss, preds
+  
+  def add_name(self, name):
+    self._top = tf.identity(self._top, name=name)
 
 
 class ModelBase(object):
