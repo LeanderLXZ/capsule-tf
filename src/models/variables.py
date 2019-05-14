@@ -40,41 +40,6 @@ def tf_variable(name,
   variable_summaries(var, verbose)
   return var
 
-
-def tf_variable_assign(name,
-                       initial_value,
-                       dtype=tf.float32,
-                       store_on_cpu=True,
-                       trainable=True,
-                       verbose=False):
-  """
-  Helper to create a pre-trained Variable.
-
-  Args:
-    name: name of the tf_variable
-    initial_value: pre-trained value
-    dtype: data type
-    store_on_cpu: create a Variable stored on CPU memory
-    trainable: tf_variable can be trained by models
-    verbose: if set add histograms.
-
-  Returns:
-    Variable Tensor
-  """
-  if store_on_cpu:
-    with tf.device('/cpu:0'):
-      with tf.name_scope(name):
-        var = tf.Variable(initial_value=initial_value,
-                          trainable=trainable, dtype=dtype, name=name)
-  else:
-    with tf.name_scope(name):
-      var = tf.Variable(initial_value=initial_value,
-                        trainable=trainable, dtype=dtype, name=name)
-
-  variable_summaries(var, verbose)
-  return var
-
-
 def variable_summaries(var, verbose):
   """Attaches a lot of summaries to a Tensor (for TensorBoard visualization).
 

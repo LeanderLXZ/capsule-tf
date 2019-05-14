@@ -11,6 +11,7 @@ preprocessed_data/
 logs/
 tf_logs/
 train_logs/
+line_regression_model/
 data/
 *.jpg
 *.csv

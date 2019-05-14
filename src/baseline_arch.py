@@ -21,7 +21,7 @@ def model_arch(inputs, labels, input_imgs,
 
   model = Sequential(inputs, verbose=True)
 
-  if restore_vars_dict is not None:
+  if restore_vars_dict is None:
 
     with tf.variable_scope('classifier'):
 
@@ -40,9 +40,9 @@ def model_arch(inputs, labels, input_imgs,
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=3,
+          num_routing=1,
           leaky=False,
-          kernel_size=3,
+          kernel_size=9,
           stride=2,
           padding='VALID',
           act_fn='squash',
@@ -119,20 +119,20 @@ def model_arch(inputs, labels, input_imgs,
           padding='VALID',
           act_fn='relu',
           idx=0
-      ).assign_variables(w_conv_0, b_conv_0))
+      ), weights=w_conv_0, biases=b_conv_0, trainable=True)
       model.add(Capsule4Dto5D())
       model.add(ConvSlimCapsule(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=3,
+          num_routing=1,
           leaky=False,
-          kernel_size=3,
+          kernel_size=9,
           stride=2,
           padding='VALID',
           act_fn='squash',
           idx=0
-      ).assign_variables(w_caps_0, b_caps_0))
+      ), weights=w_caps_0, biases=b_caps_0, trainable=True)
       model.add(Capsule5Dto3D())
       model.add(Capsule(
           cfg,
@@ -142,15 +142,15 @@ def model_arch(inputs, labels, input_imgs,
           leaky=False,
           act_fn='squash',
           idx=1
-      ).assign_variables(w_caps_1, b_caps_1))
+      ), weights=w_caps_1, biases=b_caps_1, trainable=True)
       model.add(Capsule(
           cfg,
-          output_dim=90,
+          output_dim=10,
           output_atoms=16,
           num_routing=3,
           leaky=False,
           act_fn='squash',
-          idx=1
+          idx=2
       ))
       model.add_name('clf_logits')
 

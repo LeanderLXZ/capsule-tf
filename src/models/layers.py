@@ -3,7 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from models.variables import tf_variable, tf_variable_assign
+
+from models.variables import tf_variable
 
 
 def get_act_fn(act_fn):
@@ -33,12 +34,15 @@ class Sequential(object):
     if verbose:
       print('[1]  Inputs: ', inputs.get_shape().as_list())
 
-  def add(self, layer):
+  def add(self, layer, **vars):
     """Add a layer to the top of the models.
 
     Args:
       layer: the layer to be added
+      assign_variables: assign existed variables, (weights, biases)
     """
+    if vars:
+      layer.assign_variables(**vars)
     self._top = layer(self._top)
     layer_name_ = layer.__class__.__name__
     layer_params_ = layer.params
@@ -73,6 +77,7 @@ class ModelBase(object):
     self.assign_vars = False
     self.weights = None
     self.biases = None
+    self.trainable = True
 
   @property
   def params(self):
@@ -88,10 +93,11 @@ class ModelBase(object):
   def output_shape(self):
     return self.output.get_shape().as_list()
 
-  def assign_variables(self, weights, biases):
+  def assign_variables(self, weights, biases, trainable=True):
     self.assign_vars = True
     self.weights = weights
     self.biases = biases
+    self.trainable = trainable
 
   def _get_variables(self,
                      use_bias=True,
@@ -101,39 +107,27 @@ class ModelBase(object):
                      biases_initializer=tf.zeros_initializer(),
                      store_on_cpu=True):
     if self.assign_vars:
-      assert weights_shape == self.weights.shape, \
+      assert weights_shape == list(self.weights.shape), \
         'Shapes of weights are not matched: {} & {}'.format(
             weights_shape, self.weights.shape)
-      weights = tf_variable_assign(
-          initial_value=self.weights,
-          store_on_cpu=store_on_cpu,
-          name='weights'
-      )
-    else:
-      weights = tf_variable(
-          name='weights',
-          shape=weights_shape,
-          initializer=weights_initializer,
-          store_on_cpu=store_on_cpu
-      )
+      weights_initializer = tf.constant_initializer(self.weights)
+    weights = tf_variable(name='weights',
+                          shape=weights_shape,
+                          initializer=weights_initializer,
+                          store_on_cpu=store_on_cpu,
+                          trainable=self.trainable)
 
     if use_bias:
       if self.assign_vars:
-        assert biases_shape == self.biases.shape, \
+        assert biases_shape == list(self.biases.shape), \
           'Shapes of biases are not matched: {} & {}'.format(
               biases_shape, self.biases.shape)
-        biases = tf_variable_assign(
-              initial_value=self.biases,
-              store_on_cpu=store_on_cpu,
-              name='biases'
-        )
-      else:
-        biases = tf_variable(
-            name='biases',
-            shape=biases_shape,
-            initializer=biases_initializer,
-            store_on_cpu=store_on_cpu
-        )
+        biases_initializer = tf.constant_initializer(self.biases)
+      biases = tf_variable(name='biases',
+                           shape=biases_shape,
+                           initializer=biases_initializer,
+                           store_on_cpu=store_on_cpu,
+                           trainable=self.trainable)
     else:
       biases = None
 

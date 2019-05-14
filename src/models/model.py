@@ -37,6 +37,7 @@ class Model(object):
     """
     _inputs = tf.placeholder(
         tf.float32, shape=[self.cfg.BATCH_SIZE, *input_size], name='inputs')
+    print(_inputs.get_shape())
     _labels = tf.placeholder(
         tf.float32, shape=[self.cfg.BATCH_SIZE, num_class], name='labels')
     _input_imgs = tf.placeholder(
