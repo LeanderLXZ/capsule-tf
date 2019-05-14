@@ -224,9 +224,6 @@ __C.MAX_TO_KEEP_CKP = 3
 # Calculate the train loss of full data set, which may take lots of time.
 __C.EVAL_WITH_FULL_TRAIN_SET = False
 
-# Show details of training progress
-__C.SHOW_TRAINING_DETAILS = False
-
 # -------------------------------------------
 # Test
 # 'after_training': evaluate after all training finished
@@ -234,10 +231,10 @@ __C.SHOW_TRAINING_DETAILS = False
 # None: Do not test
 
 # Evaluate on single-object test set
-__C.TEST_SO_MODE = 'per_epoch'
+__C.TEST_SO_MODE = 'after_training'  # 'per_epoch'
 
 # Evaluate on multi-objects test set
-__C.TEST_MO_MODE = 'per_epoch'
+__C.TEST_MO_MODE = 'after_training'  # 'per_epoch'
 
 
 # ===========================================

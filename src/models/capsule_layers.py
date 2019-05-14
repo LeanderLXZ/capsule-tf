@@ -310,7 +310,7 @@ class ConvSlimCapsule(ModelBase):
         batch_size * input_dim, input_atoms, input_height, input_width
       ])
       input_tensor_reshaped.set_shape(
-          (batch_size, input_atoms, input_height, input_width))
+          (None, input_atoms, input_height, input_width))
       conv = tf.nn.conv2d(
           input_tensor_reshaped,
           kernel,
@@ -327,7 +327,7 @@ class ConvSlimCapsule(ModelBase):
         self.output_atoms, conv_shape[2], conv_shape[3]
       ])
       conv_reshaped.set_shape((
-        batch_size, input_dim, self.output_dim,
+        None, input_dim, self.output_dim,
         self.output_atoms, conv_height, conv_width
       ))
       return conv_reshaped, conv_shape
