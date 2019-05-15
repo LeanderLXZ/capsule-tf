@@ -830,7 +830,7 @@ def save_imgs(real_imgs,
               epoch_i=None,
               test_flag=False,
               colorful=False,
-              append_info=None):
+              append_info=''):
   """Save images to jpg files."""
   # Image shape
   img_shape = real_imgs.shape[1:]

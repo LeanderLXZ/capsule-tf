@@ -172,7 +172,7 @@ __C.DECODER_TYPE = 'fc'
 __C.REC_LOSS = 'ce'
 
 # Scaling for reconstruction loss
-__C.REC_LOSS_SCALE = 0.0005  # 0.0005*32*32=0.512  # 0.0005*784=0.392
+__C.REC_LOSS_SCALE = 0.392  # 0.0005*32*32=0.512  # 0.0005*784=0.392
 
 # -------------------------------------------
 # Transfer Learning
