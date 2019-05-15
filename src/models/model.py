@@ -37,7 +37,6 @@ class Model(object):
     """
     _inputs = tf.placeholder(
         tf.float32, shape=[self.cfg.BATCH_SIZE, *input_size], name='inputs')
-    print(_inputs.get_shape())
     _labels = tf.placeholder(
         tf.float32, shape=[self.cfg.BATCH_SIZE, num_class], name='labels')
     _input_imgs = tf.placeholder(
@@ -357,7 +356,7 @@ class ModelDistribute(Model):
                                 clf_preds_all, rec_loss_all, rec_imgs_all)
 
       # Show variables
-      utils.thin_line()
+      utils.thick_line()
       print('Variables: ')
       for v in tf.global_variables():
         print(v)
