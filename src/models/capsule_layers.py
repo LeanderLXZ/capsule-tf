@@ -755,7 +755,7 @@ class ConvSlimCapsuleV2(ModelBase):
       )
 
       if self.use_bias:
-        caps = tf.add(caps, biases, data_format='NCHW')
+        caps = tf.nn.bias_add(caps, biases, data_format='NCHW')
 
       if activation_fn is not None:
         caps = activation_fn(caps)

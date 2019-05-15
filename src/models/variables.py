@@ -40,6 +40,7 @@ def tf_variable(name,
   variable_summaries(var, verbose)
   return var
 
+
 def variable_summaries(var, verbose):
   """Attaches a lot of summaries to a Tensor (for TensorBoard visualization).
 
