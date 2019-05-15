@@ -109,40 +109,6 @@ def dynamic_routing(votes,
   return activations.read(num_routing - 1)
 
 
-def squash(input_tensor):
-  """Applies norm non-linearity (squash) to a capsule layer.
-
-  Args:
-    input_tensor: Input tensor. Shape is [batch, num_channels, num_atoms] for
-      a fully connected capsule layer or
-      [batch, num_channels, num_atoms, height, width] for a convolutional
-      capsule layer.
-
-  Returns:
-    A tensor with same shape as input (rank 3) for output of this layer.
-  """
-  with tf.name_scope('norm_non_linearity'):
-    norm = tf.norm(input_tensor, axis=2, keep_dims=True)
-    norm_squared = norm * norm
-    return (input_tensor / norm) * (norm_squared / (1 + norm_squared))
-
-
-def squash_v2(x):
-  """Squashing function version 2.0
-
-  Args:
-    x: A tensor with shape: (batch_size, num_caps, vec_dim, 1).
-
-  Returns:
-    A tensor with the same shape as input tensor but squashed in 'vec_dim'
-    dimension.
-  """
-  vec_squared_norm = tf.reduce_sum(tf.square(x), -2, keep_dims=True)
-  scalar_factor = tf.div(vec_squared_norm, 1 + vec_squared_norm)
-  unit_vec = tf.div(x, tf.sqrt(vec_squared_norm + 1e-9))
-  return tf.multiply(scalar_factor, unit_vec)
-
-
 class Capsule(ModelBase):
 
   def __init__(self,
@@ -225,7 +191,7 @@ class Capsule(ModelBase):
                 num_dims=4,
                 input_dim=input_dim,
                 output_dim=self.output_dim,
-                act_fn=squash if self.act_fn == 'squash' else None,
+                act_fn=self._get_act_fn(self.act_fn),
                 num_routing=self.num_routing,
                 leaky=self.leaky)
 
@@ -243,7 +209,8 @@ class ConvSlimCapsule(ModelBase):
                kernel_size=5,
                stride=2,
                padding='SAME',
-               act_fn='squash',
+               conv_act_fn=None,
+               caps_act_fn='squash',
                idx=0):
     """Builds a slim convolutional capsule layer.
 
@@ -271,7 +238,8 @@ class ConvSlimCapsule(ModelBase):
       kernel_size: scalar, convolutional kernels are [kernel_size, kernel_size].
       stride: scalar, stride of the convolutional kernel.
       padding: 'SAME' or 'VALID', padding mechanism for convolutional kernels.
-      act_fn: string, activation function
+      conv_act_fn: activation function of convolution
+      caps_act_fn: activation function of capsule
       idx: int, index of layer
     """
     super(ConvSlimCapsule, self).__init__()
@@ -283,7 +251,8 @@ class ConvSlimCapsule(ModelBase):
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
-    self.act_fn = act_fn
+    self.conv_act_fn = conv_act_fn
+    self.caps_act_fn = caps_act_fn
     self.idx = idx
 
   def _depthwise_conv3d(self, input_tensor, kernel):
@@ -327,6 +296,11 @@ class ConvSlimCapsule(ModelBase):
           padding=self.padding,
           data_format='NCHW')
       conv_shape = tf.shape(conv)
+
+      if self.conv_act_fn is not None:
+        act_fn_conv = self._get_act_fn(self.conv_act_fn)
+        conv = act_fn_conv(conv)
+
       _, _, conv_height, conv_width = conv.get_shape().as_list()
       # Reshape back to 6D by splitting first dimension to batch and input_dim
       # and splitting second dimension to output_dim and output_atoms.
@@ -389,7 +363,7 @@ class ConvSlimCapsule(ModelBase):
             num_dims=6,
             input_dim=input_dim,
             output_dim=self.output_dim,
-            act_fn=squash if self.act_fn == 'squash' else None,
+            act_fn=self._get_act_fn(self.caps_act_fn),
             num_routing=self.num_routing,
             leaky=self.leaky)
 
@@ -546,7 +520,7 @@ class CapsuleV2(ModelBase):
     assert b_ij.get_shape() == (
       batch_size, input_dim, self.output_dim, 1, 1)
 
-    def _sum_and_activate(_u_hat, _c_ij, cfg_, name=None):
+    def _sum_and_activate(_u_hat, _c_ij, name=None):
       """Get sum of vectors and apply activation function."""
       # Calculating s_j(using u_hat)
       # Using u_hat but not u_hat_stop in order to transfer gradients.
@@ -584,16 +558,14 @@ class CapsuleV2(ModelBase):
 
           # Calculating s_j(using u_hat) and Applying activation function.
           # Using u_hat but not u_hat_stop in order to transfer gradients.
-          votes = _sum_and_activate(
-              u_hat, c_ij_stop, self.cfg, name='votes')
+          votes = _sum_and_activate(u_hat, c_ij_stop, name='votes')
 
         # Do not apply back-propagation if it is not last epoch.
         else:
           # Calculating s_j(using u_hat_stop) and Applying activation function.
           # Using u_hat_stop so that the gradient will not be transferred to
           # routing processes.
-          votes = _sum_and_activate(
-              u_hat_stop, c_ij, self.cfg, name='votes')
+          votes = _sum_and_activate(u_hat_stop, c_ij, name='votes')
 
           # Updating: b_ij <- b_ij + vj x u_ij
           votes_reshaped = tf.reshape(
@@ -667,7 +639,7 @@ class CapsuleV2(ModelBase):
           inputs=inputs,
           weights=weights,
           biases=biases,
-          act_fn=squash if self.act_fn == 'squash' else None
+          act_fn=self._get_act_fn(self.act_fn)
       )
       self.output = tf.squeeze(self.votes, axis=-1)
 
@@ -683,7 +655,8 @@ class ConvSlimCapsuleV2(ModelBase):
                kernel_size=None,
                stride=None,
                padding='SAME',
-               act_fn='relu',
+               conv_act_fn='relu',
+               caps_act_fn='squash_v2',
                use_bias=True,
                idx=0):
     """Generate a Capsule layer using convolution kernel.
@@ -695,7 +668,8 @@ class ConvSlimCapsuleV2(ModelBase):
       kernel_size: size of convolution kernel
       stride: stride of convolution kernel
       padding: padding type of convolution kernel
-      act_fn: activation function of convolution layer
+      conv_act_fn: activation function of convolution
+      caps_act_fn: activation function of capsule
       use_bias: add biases
       idx: index of layer
     """
@@ -706,7 +680,8 @@ class ConvSlimCapsuleV2(ModelBase):
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
-    self.act_fn = act_fn
+    self.conv_act_fn = conv_act_fn
+    self.caps_act_fn = caps_act_fn
     self.use_bias = use_bias
     self.idx = idx
 
@@ -727,8 +702,6 @@ class ConvSlimCapsuleV2(ModelBase):
           inputs.get_shape().as_list()
 
       # Convolution layer
-      activation_fn = squash if self.act_fn == 'squash' else None
-
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
       # weights_initializer = tf.truncated_normal_initializer(
@@ -757,8 +730,9 @@ class ConvSlimCapsuleV2(ModelBase):
       if self.use_bias:
         caps = tf.nn.bias_add(caps, biases, data_format='NCHW')
 
-      if activation_fn is not None:
-        caps = activation_fn(caps)
+      if self.conv_act_fn is not None:
+        act_fn_conv = self._get_act_fn(self.conv_act_fn)
+        caps = act_fn_conv(caps)
 
       # Reshape and generating a capsule layer
       # caps shape:
@@ -775,7 +749,8 @@ class ConvSlimCapsuleV2(ModelBase):
         batch_size, num_capsule, self.output_atoms, 1)
 
       # Applying activation function
-      self.output = tf.squeeze(squash_v2(caps), axis=-1)
+      act_fn_caps = self._get_act_fn(self.caps_act_fn)
+      self.output = tf.squeeze(act_fn_caps(caps), axis=-1)
       # caps_activated shape: (batch_size, num_capsule, output_atoms)
       assert self.output.get_shape() == (
         batch_size, num_capsule, self.output_atoms)

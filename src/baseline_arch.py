@@ -67,7 +67,8 @@ def model_arch(inputs, labels, input_imgs,
           kernel_size=9,
           stride=1,
           padding='VALID',
-          act_fn='relu',
+          conv_act_fn='relu',
+          caps_act_fn='squash_v2',
           idx=0
       ))
       model.add(CapsuleV2(
@@ -75,7 +76,7 @@ def model_arch(inputs, labels, input_imgs,
           output_dim=10,
           output_atoms=16,
           num_routing=3,
-          act_fn='squash',
+          act_fn='squash_v2',
           share_weights=False,
           idx=1
       ))
@@ -151,7 +152,8 @@ def model_arch(inputs, labels, input_imgs,
           kernel_size=9,
           stride=2,
           padding='VALID',
-          act_fn='squash',
+          conv_act_fn=None,
+          caps_act_fn='squash',
           idx=0
       ), weights=w_caps_0, biases=b_caps_0, trainable=True)
       model.add(Capsule5Dto3D())

@@ -5,6 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 from models.variables import tf_variable
+from models.activation_functions import squash, squash_v2
 
 
 class Sequential(object):
@@ -115,17 +116,22 @@ class ModelBase(object):
 
     return weights, biases
 
-  def _get_act_fn(self):
+  @staticmethod
+  def _get_act_fn(fn_name):
     """
     Helper to get activation function from name.
     """
-    if self.act_fn == 'relu':
+    if fn_name == 'relu':
       return tf.nn.relu
-    elif self.act_fn == 'sigmoid':
+    elif fn_name == 'sigmoid':
       return tf.nn.sigmoid
-    elif self.act_fn == 'elu':
+    elif fn_name == 'elu':
       return tf.nn.elu
-    elif self.act_fn is None:
+    elif fn_name == 'squash':
+      return squash
+    elif fn_name == 'squash_v2':
+      return squash_v2
+    elif fn_name is None:
       return None
     else:
       raise ValueError('Wrong activation function name!')
@@ -166,7 +172,6 @@ class Dense(ModelBase):
       output tensor of full-connected layer
     """
     with tf.variable_scope('fc_{}'.format(self.idx)):
-      activation_fn = self._get_act_fn()
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -189,8 +194,9 @@ class Dense(ModelBase):
       if self.use_bias:
         self.output = tf.add(self.output, biases)
 
-      if activation_fn is not None:
-        self.output = activation_fn(self.output)
+      if self.act_fn is not None:
+        activation_function = self._get_act_fn(self.act_fn)
+        self.output = activation_function(self.output)
 
       return self.output
 
@@ -263,8 +269,6 @@ class Conv(ModelBase):
             inputs, [[0, 0], [0, 0], [pad_beg, pad_end], [pad_beg, pad_end]])
         self.padding = 'VALID'
 
-      activation_fn = self._get_act_fn()
-
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
       # weights_initializer = tf.truncated_normal_initializer(
@@ -291,8 +295,9 @@ class Conv(ModelBase):
       if self.use_bias:
         self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
 
-      if activation_fn is not None:
-        self.output = activation_fn(self.output)
+      if self.act_fn is not None:
+        activation_function = self._get_act_fn(self.act_fn)
+        self.output = activation_function(self.output)
 
       return self.output
 
@@ -345,7 +350,6 @@ class ConvT(ModelBase):
       `[batch, output_channels, output_height, output_width]`.
     """
     with tf.variable_scope('conv_t_{}'.format(self.idx)):
-      activation_fn = self._get_act_fn()
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -376,8 +380,9 @@ class ConvT(ModelBase):
       if self.use_bias:
         self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
 
-      if activation_fn is not None:
-        self.output = activation_fn(self.output)
+      if self.act_fn is not None:
+        activation_function = self._get_act_fn(self.act_fn)
+        self.output = activation_function(self.output)
 
       return self.output
 
@@ -548,8 +553,8 @@ class BatchNorm(ModelBase):
           training=self.is_training)
 
       if self.act_fn is not None:
-        activation_fn = self._get_act_fn()
-        self.output = activation_fn(self.output)
+        activation_function = self._get_act_fn(self.act_fn)
+        self.output = activation_function(self.output)
 
     return self.output
 
