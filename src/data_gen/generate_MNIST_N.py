@@ -6,12 +6,14 @@ import numpy as np
 import cv2 as cv
 import os
 import random
-import pickle
 import csv
 import time
 from PIL import Image
 from tqdm import tqdm
 from os.path import join, isdir
+
+from utils import save_data_to_pkl, load_pkls, \
+    load_data_from_pkl, square_grid_show_imgs
 
 
 def img_shear(img):
@@ -130,26 +132,6 @@ def csv_gen():
   csv_file.close()
 
 
-def load_data_from_pkl(data_path,  verbose=True):
-  """Load data from pickle file."""
-
-  with open(data_path, 'rb') as f:
-    if verbose:
-      print('Loading {}...'.format(f.name))
-    return pickle.load(f)
-
-
-def save_data_to_pkl(data, data_path, verbose=True):
-  """data to pickle file."""
-  file_size = data.nbytes
-  with open(data_path, 'wb') as f:
-    if verbose:
-      print('Saving {}...'.format(f.name))
-      print('Shape: {}'.format(np.array(data).shape))
-      print('Size: {:.4}Mb'.format(file_size / (10**6)))
-    pickle.dump(data, f)
-
-
 def load_img_array(file_path):
   train_images = load_data_from_pkl(join(file_path, 'train_images.p'))
   train_labels = load_data_from_pkl(join(file_path, 'train_labels.p'))
@@ -238,14 +220,9 @@ if __name__ == '__main__':
   save_data_to_pkl(test_images_new, join(save_path, 'test_images.p'))
   save_data_to_pkl(test_labels_new, join(save_path, 'test_labels.p'))
 
-  # import matplotlib.pyplot as plt
-  #   # with open(join(save_path, 'train_images.p'), 'rb') as f_imgs:
-  #   #     train_imgs_ = pickle.load(f_imgs)
-  #   # with open(join(save_path, 'train_labels.p'), 'rb') as f_labels:
-  #   #     train_labels_ = pickle.load(f_labels)
-  #   # for i_ in range(20):
-  #   #     plt.subplot(4, 5, i_ + 1)
-  #   #     plt.imshow(train_imgs_[i_])
-  #   # print(train_labels_[0:20])
+  train_imgs_ = load_pkls(save_path, 'train_images')
+  train_labels_ = load_pkls(save_path, 'train_labels')
+  square_grid_show_imgs(train_imgs_[:25], mode='L')
+  print(train_labels_[:25])
 
   print('Done! Using {:.4}s'.format(time.time() - start_time))

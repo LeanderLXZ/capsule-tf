@@ -5,7 +5,7 @@ from __future__ import print_function
 from os.path import join
 
 from config import config as cfg
-from models import utils
+import utils
 
 
 # Download database
