@@ -127,6 +127,22 @@ def squash(input_tensor):
     return (input_tensor / norm) * (norm_squared / (1 + norm_squared))
 
 
+def squash_v2(x):
+  """Squashing function version 2.0
+
+  Args:
+    x: A tensor with shape: (batch_size, num_caps, vec_dim, 1).
+
+  Returns:
+    A tensor with the same shape as input tensor but squashed in 'vec_dim'
+    dimension.
+  """
+  vec_squared_norm = tf.reduce_sum(tf.square(x), -2, keep_dims=True)
+  scalar_factor = tf.div(vec_squared_norm, 1 + vec_squared_norm)
+  unit_vec = tf.div(x, tf.sqrt(vec_squared_norm + 1e-9))
+  return tf.multiply(scalar_factor, unit_vec)
+
+
 class Capsule(ModelBase):
 
   def __init__(self,
@@ -154,8 +170,7 @@ class Capsule(ModelBase):
     self.output_atoms = output_atoms
     self.num_routing = num_routing
     self.leaky = leaky
-    self.act_fn_name = act_fn
-    self.act_fn = squash if act_fn == 'squash' else None
+    self.act_fn = act_fn
     self.idx = idx
 
   def __call__(self, inputs):
@@ -210,7 +225,7 @@ class Capsule(ModelBase):
                 num_dims=4,
                 input_dim=input_dim,
                 output_dim=self.output_dim,
-                act_fn=self.act_fn,
+                act_fn=squash if self.act_fn == 'squash' else None,
                 num_routing=self.num_routing,
                 leaky=self.leaky)
 
@@ -268,8 +283,7 @@ class ConvSlimCapsule(ModelBase):
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
-    self.act_fn_name = act_fn
-    self.act_fn = squash if act_fn == 'squash' else None
+    self.act_fn = act_fn
     self.idx = idx
 
   def _depthwise_conv3d(self, input_tensor, kernel):
@@ -375,7 +389,7 @@ class ConvSlimCapsule(ModelBase):
             num_dims=6,
             input_dim=input_dim,
             output_dim=self.output_dim,
-            act_fn=self.act_fn,
+            act_fn=squash if self.act_fn == 'squash' else None,
             num_routing=self.num_routing,
             leaky=self.leaky)
 
@@ -449,3 +463,321 @@ class Capsule4Dto5D(ModelBase):
     """
     self.output = tf.expand_dims(inputs, 1)
     return self.output
+
+
+class CapsuleV2(ModelBase):
+
+  def __init__(self,
+               cfg,
+               output_dim=None,
+               output_atoms=None,
+               num_routing=None,
+               act_fn='squash',
+               share_weights=False,
+               idx=0):
+    """Initialize capsule layer.
+
+    Args:
+      cfg: configuration
+      output_dim: number of capsules of this layer
+      output_atoms: dimensions of vectors of capsules
+      num_routing: number of dynamic routing iteration
+      act_fn: string, activation function
+      share_weights: if share weights matrix
+      idx: index of layer
+    """
+    super(CapsuleV2, self).__init__()
+    self.cfg = cfg
+    self.output_dim = output_dim
+    self.output_atoms = output_atoms
+    self.num_routing = num_routing
+    self.act_fn = act_fn
+    self.share_weights = share_weights
+    self.idx = idx
+
+  def dynamic_routing(self, inputs, weights, biases, act_fn):
+    """Dynamic routing according to Hinton's paper.
+
+    Args:
+      inputs: input tensor
+        - shape: [batch_size, input_dim, input_atoms, 1]
+      weights: weights matrix
+      biases: biases
+      act_fn: activation function
+
+    Returns:
+      output tensor
+        - shape: [batch_size, output_dim, output_atoms, 1]
+    """
+    batch_size, input_dim, input_atoms, _ = inputs.get_shape().as_list()
+    votes = None
+
+    # Reshape input tensor
+    inputs_shape_new = [batch_size, input_dim, 1, input_atoms, 1]
+    inputs = tf.reshape(inputs, shape=inputs_shape_new)
+    inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
+    # inputs shape: (batch_size, input_dim, output_dim, vec_dim_i, 1)
+    assert inputs.get_shape() == (
+        batch_size, input_dim, self.output_dim, input_atoms, 1)
+
+    # Initializing weights
+    weights = tf.tile(weights, [batch_size, 1, 1, 1, 1])
+    if self.share_weights:
+      weights = tf.tile(weights, [1, input_dim, 1, 1, 1])
+    # weights shape: (batch_size, input_dim,
+    #                 output_dim, output_atoms, vec_dim_i)
+    assert weights.get_shape() == (
+        batch_size, input_dim, self.output_dim, self.output_atoms, input_atoms)
+
+    # Calculating u_hat
+    # ( , , , self.output_atoms, vec_dim_i) x ( , , , vec_dim_i, 1)
+    # -> ( , , , output_atoms, 1) -> squeeze -> ( , , , output_atoms)
+    u_hat = tf.matmul(weights, inputs, name='u_hat')
+    # u_hat shape: (batch_size, input_dim, output_dim, output_atoms, 1)
+    assert u_hat.get_shape() == (
+        batch_size, input_dim, self.output_dim, self.output_atoms, 1)
+
+    # u_hat_stop
+    # Do not transfer the gradient of u_hat_stop during back-propagation
+    u_hat_stop = tf.stop_gradient(u_hat, name='u_hat_stop')
+
+    # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
+    b_ij = biases
+    assert b_ij.get_shape() == (
+      batch_size, input_dim, self.output_dim, 1, 1)
+
+    def _sum_and_activate(_u_hat, _c_ij, cfg_, name=None):
+      """Get sum of vectors and apply activation function."""
+      # Calculating s_j(using u_hat)
+      # Using u_hat but not u_hat_stop in order to transfer gradients.
+      _s_j = tf.reduce_sum(tf.multiply(_u_hat, _c_ij), axis=1)
+      # _s_j shape: (batch_size, output_dim, output_atoms, 1)
+      assert _s_j.get_shape() == (
+          batch_size, self.output_dim, self.output_atoms, 1)
+
+      # Applying Squashing
+      _votes = act_fn(_s_j, batch_size, cfg_.EPSILON)
+      # _votes shape: (batch_size, output_dim, output_atoms, 1)
+      assert _votes.get_shape() == (
+          batch_size, self.output_dim, self.output_atoms, 1)
+
+      _votes = tf.identity(_votes, name=name)
+
+      return _votes
+
+    for iter_route in range(self.num_routing):
+
+      with tf.variable_scope('iter_route_{}'.format(iter_route)):
+
+        # Calculate c_ij for every epoch
+        c_ij = tf.nn.softmax(b_ij, dim=2)
+
+        # c_ij shape: (batch_size, input_dim, output_dim, 1, 1)
+        assert c_ij.get_shape() == (
+            batch_size, input_dim, self.output_dim, 1, 1)
+
+        # Applying back-propagation at last epoch.
+        if iter_route == self.num_routing - 1:
+          # c_ij_stop
+          # Do not transfer the gradient of c_ij_stop during back-propagation.
+          c_ij_stop = tf.stop_gradient(c_ij, name='c_stop')
+
+          # Calculating s_j(using u_hat) and Applying activation function.
+          # Using u_hat but not u_hat_stop in order to transfer gradients.
+          votes = _sum_and_activate(
+              u_hat, c_ij_stop, self.cfg, name='votes')
+
+        # Do not apply back-propagation if it is not last epoch.
+        else:
+          # Calculating s_j(using u_hat_stop) and Applying activation function.
+          # Using u_hat_stop so that the gradient will not be transferred to
+          # routing processes.
+          votes = _sum_and_activate(
+              u_hat_stop, c_ij, self.cfg, name='votes')
+
+          # Updating: b_ij <- b_ij + vj x u_ij
+          votes_reshaped = tf.reshape(
+              votes, shape=[-1, 1, self.output_dim, 1, self.output_atoms])
+          votes_reshaped = tf.tile(
+              votes_reshaped,
+              [1, input_dim, 1, 1, 1],
+              name='votes_reshaped')
+          # votes_reshaped shape:
+          # (batch_size, input_dim, output_dim, 1, output_atoms)
+          assert votes_reshaped.get_shape() == (
+              batch_size, input_dim, self.output_dim, 1, self.output_atoms)
+
+          # ( , , , 1, output_atoms) x ( , , , output_atoms, 1)
+          # -> squeeze -> (batch_size, input_dim, output_dim, 1, 1)
+          delta_b_ij = tf.matmul(
+              votes_reshaped, u_hat_stop, name='delta_b')
+          # delta_b_ij shape: (batch_size, input_dim, output_dim, 1)
+          assert delta_b_ij.get_shape() == (
+              batch_size, input_dim, self.output_dim, 1, 1)
+
+          b_ij = tf.add(b_ij, delta_b_ij, name='b')
+          # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
+          assert b_ij.get_shape() == (
+              batch_size, input_dim, self.output_dim, 1, 1)
+
+    # votes_out shape: (batch_size, output_dim, output_atoms, 1)
+    assert votes.get_shape() == (
+        batch_size, self.output_dim, self.output_atoms, 1)
+
+    return votes
+
+  def __call__(self, inputs):
+    """Apply dynamic routing.
+
+    Args:
+      inputs: input tensor
+        - shape: [batch, input_dim, input_atoms]
+
+    Returns:
+      output tensor
+        - shape: [batch, output_dim, output_atoms]
+    """
+    with tf.variable_scope('caps_{}'.format(self.idx)):
+
+      batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
+
+      # shape: [batch, input_dim, input_atoms, 1]
+      inputs = tf.expand_dims(inputs, -1)
+
+      # weights_initializer = tf.contrib.layers.xavier_initializer()
+      weights_initializer = tf.truncated_normal_initializer(
+          stddev=0.01, dtype=tf.float32)
+      biases_initializer = tf.zeros_initializer()
+
+      if self.share_weights:
+        weights_shape = [1, 1, self.output_dim, self.output_atoms, input_atoms]
+      else:
+        weights_shape = \
+            [1, input_dim, self.output_dim, self.output_atoms, input_atoms]
+      weights, biases = self._get_variables(
+          use_bias=True,
+          weights_shape=weights_shape,
+          biases_shape=[batch_size, input_dim, self.output_dim, 1, 1],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
+          store_on_cpu=self.cfg.VAR_ON_CPU
+      )
+
+      self.votes = self.dynamic_routing(
+          inputs=inputs,
+          weights=weights,
+          biases=biases,
+          act_fn=squash if self.act_fn == 'squash' else None
+      )
+      self.output = tf.squeeze(self.votes, axis=-1)
+
+    return self.output
+
+
+class ConvSlimCapsuleV2(ModelBase):
+
+  def __init__(self,
+               cfg,
+               output_dim=None,
+               output_atoms=None,
+               kernel_size=None,
+               stride=None,
+               padding='SAME',
+               act_fn='relu',
+               use_bias=True,
+               idx=0):
+    """Generate a Capsule layer using convolution kernel.
+
+    Args:
+      cfg: configuration
+      output_dim: number of capsules of this layer
+      output_atoms: dimensions of vectors of capsules
+      kernel_size: size of convolution kernel
+      stride: stride of convolution kernel
+      padding: padding type of convolution kernel
+      act_fn: activation function of convolution layer
+      use_bias: add biases
+      idx: index of layer
+    """
+    super(ConvSlimCapsuleV2, self).__init__()
+    self.cfg = cfg
+    self.output_dim = output_dim
+    self.output_atoms = output_atoms
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.act_fn = act_fn
+    self.use_bias = use_bias
+    self.idx = idx
+
+  def __call__(self, inputs):
+    """Convert a convolution layer to capsule layer.
+
+    Args:
+      inputs: input tensor
+        - [batch, input_channels, input_height, input_width]
+
+    Returns:
+      tensor of capsules
+        - [batch, output_dim * output_height * output_width, output_atoms]
+    """
+    with tf.variable_scope('caps_{}'.format(self.idx)):
+
+      batch_size, input_channels, input_height, input_width = \
+          inputs.get_shape().as_list()
+
+      # Convolution layer
+      activation_fn = self._get_act_fn()
+
+      weights_initializer = tf.contrib.layers.xavier_initializer()
+      biases_initializer = tf.zeros_initializer() if self.use_bias else None
+      # weights_initializer = tf.truncated_normal_initializer(
+      #     stddev=0.1, dtype=tf.float32)
+      # biases_initializer = tf.constant_initializer(0.1) \
+      #     if self.use_bias else None
+
+      weights, biases = self._get_variables(
+          use_bias=True,
+          weights_shape=[self.kernel_size, self.kernel_size,
+                         input_channels, self.output_dim * self.output_atoms],
+          biases_shape=[self.output_dim * self.output_atoms],
+          weights_initializer=weights_initializer,
+          biases_initializer=biases_initializer,
+          store_on_cpu=self.cfg.VAR_ON_CPU
+      )
+
+      caps = tf.nn.conv2d(
+          input=inputs,
+          filter=weights,
+          strides=[1, self.stride, self.stride, 1],
+          padding=self.padding,
+          data_format='NCHW'
+      )
+
+      if self.use_bias:
+        caps = tf.add(caps, biases, data_format='NCHW')
+
+      if activation_fn is not None:
+        caps = activation_fn(caps)
+
+      # Reshape and generating a capsule layer
+      # caps shape:
+      # (batch_size, self.output_dim * self.output_atoms,
+      #  output_height, output_width)
+      caps_shape = caps.get_shape().as_list()
+      num_capsule = caps_shape[1] * caps_shape[2] * self.output_dim
+
+      # reshaped caps shape: (batch_size, num_capsule, output_atoms, 1)
+      # num_capsule = output_dim * output_height * output_width
+      caps = tf.transpose(caps, [0, 2, 3, 1])
+      caps = tf.reshape(caps, [batch_size, -1, self.output_atoms, 1])
+      assert caps.get_shape() == (
+        batch_size, num_capsule, self.output_atoms, 1)
+
+      # Applying activation function
+      self.output = tf.squeeze(squash_v2(caps), axis=-1)
+      # caps_activated shape: (batch_size, num_capsule, output_atoms)
+      assert self.output.get_shape() == (
+        batch_size, num_capsule, self.output_atoms)
+
+      return self.output

@@ -7,23 +7,6 @@ import tensorflow as tf
 from models.variables import tf_variable
 
 
-def get_act_fn(act_fn):
-  """
-  Helper to get activation function from name.
-  """
-  if act_fn == 'relu':
-    activation_fn = tf.nn.relu
-  elif act_fn == 'sigmoid':
-    activation_fn = tf.nn.sigmoid
-  elif act_fn == 'elu':
-    activation_fn = tf.nn.elu
-  elif act_fn is None:
-    activation_fn = None
-  else:
-    raise ValueError('Wrong activation function name!')
-  return activation_fn
-
-
 class Sequential(object):
   """Build models architecture by sequential."""
   def __init__(self, inputs, verbose=False):
@@ -34,15 +17,15 @@ class Sequential(object):
     if verbose:
       print('[1]  Inputs: ', inputs.get_shape().as_list())
 
-  def add(self, layer, **vars):
+  def add(self, layer, **assign_vars):
     """Add a layer to the top of the models.
 
     Args:
       layer: the layer to be added
-      assign_variables: assign existed variables, (weights, biases)
+      assign_vars: assign existed variables, (weights, biases)
     """
-    if vars:
-      layer.assign_variables(**vars)
+    if assign_vars:
+      layer.assign_variables(**assign_vars)
     self._top = layer(self._top)
     layer_name_ = layer.__class__.__name__
     layer_params_ = layer.params
@@ -74,6 +57,7 @@ class ModelBase(object):
 
   def __init__(self):
     self.output = None
+    self.act_fn = None
     self.assign_vars = False
     self.weights = None
     self.biases = None
@@ -83,9 +67,7 @@ class ModelBase(object):
   def params(self):
     """Get parameters of this layer."""
     pop_key_list = [
-      'cfg', 'output', 'is_training', 'labels',
-      'act_function', 'weights', 'biases'
-    ]
+      'cfg', 'output', 'is_training', 'labels', 'weights', 'biases']
     return {item[0]: item[1] for item in self.__dict__.items()
             if item[0] not in pop_key_list}
 
@@ -133,6 +115,21 @@ class ModelBase(object):
 
     return weights, biases
 
+  def _get_act_fn(self):
+    """
+    Helper to get activation function from name.
+    """
+    if self.act_fn == 'relu':
+      return tf.nn.relu
+    elif self.act_fn == 'sigmoid':
+      return tf.nn.sigmoid
+    elif self.act_fn == 'elu':
+      return tf.nn.elu
+    elif self.act_fn is None:
+      return None
+    else:
+      raise ValueError('Wrong activation function name!')
+
 
 class Dense(ModelBase):
 
@@ -169,7 +166,7 @@ class Dense(ModelBase):
       output tensor of full-connected layer
     """
     with tf.variable_scope('fc_{}'.format(self.idx)):
-      activation_fn = get_act_fn(self.act_fn)
+      activation_fn = self._get_act_fn()
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -266,7 +263,7 @@ class Conv(ModelBase):
             inputs, [[0, 0], [0, 0], [pad_beg, pad_end], [pad_beg, pad_end]])
         self.padding = 'VALID'
 
-      activation_fn = get_act_fn(self.act_fn)
+      activation_fn = self._get_act_fn()
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -348,7 +345,7 @@ class ConvT(ModelBase):
       `[batch, output_channels, output_height, output_width]`.
     """
     with tf.variable_scope('conv_t_{}'.format(self.idx)):
-      activation_fn = get_act_fn(self.act_fn)
+      activation_fn = self._get_act_fn()
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -551,7 +548,7 @@ class BatchNorm(ModelBase):
           training=self.is_training)
 
       if self.act_fn is not None:
-        activation_fn = get_act_fn(self.act_fn)
+        activation_fn = self._get_act_fn()
         self.output = activation_fn(self.output)
 
     return self.output

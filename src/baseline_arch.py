@@ -21,6 +21,8 @@ def model_arch(inputs, labels, input_imgs,
 
   model = Sequential(inputs, verbose=True)
 
+  # Pre-training Model
+  # ==========================================================================
   if restore_vars_dict is None:
 
     with tf.variable_scope('classifier'):
@@ -35,27 +37,46 @@ def model_arch(inputs, labels, input_imgs,
           act_fn='relu',
           idx=0
       ))
-      model.add(Capsule4Dto5D())
-      model.add(ConvSlimCapsule(
+      # model.add(Capsule4Dto5D())
+      # model.add(ConvSlimCapsule(
+      #     cfg,
+      #     output_dim=32,
+      #     output_atoms=8,
+      #     num_routing=1,
+      #     leaky=False,
+      #     kernel_size=9,
+      #     stride=2,
+      #     padding='VALID',
+      #     act_fn='squash',
+      #     idx=0
+      # ))
+      # model.add(Capsule5Dto3D())
+      # model.add(Capsule(
+      #     cfg,
+      #     output_dim=10,
+      #     output_atoms=16,
+      #     num_routing=3,
+      #     leaky=False,
+      #     act_fn='squash',
+      #     idx=1
+      # ))
+      model.add(ConvSlimCapsuleV2(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
-          stride=2,
+          stride=1,
           padding='VALID',
-          act_fn='squash',
+          act_fn='relu',
           idx=0
       ))
-      model.add(Capsule5Dto3D())
-      model.add(Capsule(
+      model.add(CapsuleV2(
           cfg,
           output_dim=10,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
           act_fn='squash',
+          share_weights=False,
           idx=1
       ))
       model.add_name('clf_logits')
@@ -97,8 +118,8 @@ def model_arch(inputs, labels, input_imgs,
     loss = clf_loss + cfg.REC_LOSS_SCALE * rec_loss
     loss = tf.identity(loss, name='loss')
 
-  # Fine-tuning
-  # ============================================================================
+  # Fine-tuning Model
+  # ==========================================================================
   else:
 
     w_conv_0 = restore_vars_dict['w_conv_0']
