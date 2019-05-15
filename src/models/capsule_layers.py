@@ -491,25 +491,19 @@ class CapsuleV2(ModelBase):
     inputs = tf.reshape(inputs, shape=inputs_shape_new)
     inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
     # inputs shape: (batch_size, input_dim, output_dim, vec_dim_i, 1)
-    assert inputs.get_shape() == (
-        batch_size, input_dim, self.output_dim, input_atoms, 1)
 
     # Initializing weights
     weights = tf.tile(weights, [batch_size, 1, 1, 1, 1])
     if self.share_weights:
       weights = tf.tile(weights, [1, input_dim, 1, 1, 1])
-    # weights shape: (batch_size, input_dim,
-    #                 output_dim, output_atoms, vec_dim_i)
-    assert weights.get_shape() == (
-        batch_size, input_dim, self.output_dim, self.output_atoms, input_atoms)
+    # weights shape:
+    # (batch_size, input_dim, output_dim, output_atoms, vec_dim_i)
 
     # Calculating u_hat
     # ( , , , self.output_atoms, vec_dim_i) x ( , , , vec_dim_i, 1)
     # -> ( , , , output_atoms, 1) -> squeeze -> ( , , , output_atoms)
     u_hat = tf.matmul(weights, inputs, name='u_hat')
     # u_hat shape: (batch_size, input_dim, output_dim, output_atoms, 1)
-    assert u_hat.get_shape() == (
-        batch_size, input_dim, self.output_dim, self.output_atoms, 1)
 
     # u_hat_stop
     # Do not transfer the gradient of u_hat_stop during back-propagation
@@ -517,8 +511,6 @@ class CapsuleV2(ModelBase):
 
     # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
     b_ij = biases
-    assert b_ij.get_shape() == (
-      batch_size, input_dim, self.output_dim, 1, 1)
 
     def _sum_and_activate(_u_hat, _c_ij, name=None):
       """Get sum of vectors and apply activation function."""
@@ -526,14 +518,10 @@ class CapsuleV2(ModelBase):
       # Using u_hat but not u_hat_stop in order to transfer gradients.
       _s_j = tf.reduce_sum(tf.multiply(_u_hat, _c_ij), axis=1)
       # _s_j shape: (batch_size, output_dim, output_atoms, 1)
-      assert _s_j.get_shape() == (
-          batch_size, self.output_dim, self.output_atoms, 1)
 
       # Applying Squashing
       _votes = act_fn(_s_j)
       # _votes shape: (batch_size, output_dim, output_atoms, 1)
-      assert _votes.get_shape() == (
-          batch_size, self.output_dim, self.output_atoms, 1)
 
       _votes = tf.identity(_votes, name=name)
 
@@ -541,61 +529,44 @@ class CapsuleV2(ModelBase):
 
     for iter_route in range(self.num_routing):
 
-      with tf.variable_scope('iter_route_{}'.format(iter_route)):
+      # Calculate c_ij for every epoch
+      c_ij = tf.nn.softmax(b_ij, dim=2)
 
-        # Calculate c_ij for every epoch
-        c_ij = tf.nn.softmax(b_ij, dim=2)
+      # c_ij shape: (batch_size, input_dim, output_dim, 1, 1)
 
-        # c_ij shape: (batch_size, input_dim, output_dim, 1, 1)
-        assert c_ij.get_shape() == (
-            batch_size, input_dim, self.output_dim, 1, 1)
+      # Applying back-propagation at last epoch.
+      if iter_route == self.num_routing - 1:
+        # c_ij_stop
+        # Do not transfer the gradient of c_ij_stop during back-propagation.
+        c_ij_stop = tf.stop_gradient(c_ij)
 
-        # Applying back-propagation at last epoch.
-        if iter_route == self.num_routing - 1:
-          # c_ij_stop
-          # Do not transfer the gradient of c_ij_stop during back-propagation.
-          c_ij_stop = tf.stop_gradient(c_ij, name='c_stop')
+        # Calculating s_j(using u_hat) and Applying activation function.
+        # Using u_hat but not u_hat_stop in order to transfer gradients.
+        votes = _sum_and_activate(u_hat, c_ij_stop)
 
-          # Calculating s_j(using u_hat) and Applying activation function.
-          # Using u_hat but not u_hat_stop in order to transfer gradients.
-          votes = _sum_and_activate(u_hat, c_ij_stop, name='votes')
+      # Do not apply back-propagation if it is not last epoch.
+      else:
+        # Calculating s_j(using u_hat_stop) and Applying activation function.
+        # Using u_hat_stop so that the gradient will not be transferred to
+        # routing processes.
+        votes = _sum_and_activate(u_hat_stop, c_ij)
 
-        # Do not apply back-propagation if it is not last epoch.
-        else:
-          # Calculating s_j(using u_hat_stop) and Applying activation function.
-          # Using u_hat_stop so that the gradient will not be transferred to
-          # routing processes.
-          votes = _sum_and_activate(u_hat_stop, c_ij, name='votes')
+        # Updating: b_ij <- b_ij + vj x u_ij
+        votes_reshaped = tf.reshape(
+            votes, shape=[-1, 1, self.output_dim, 1, self.output_atoms])
+        votes_reshaped = tf.tile(votes_reshaped, [1, input_dim, 1, 1, 1])
+        # votes_reshaped shape:
+        # (batch_size, input_dim, output_dim, 1, output_atoms)
 
-          # Updating: b_ij <- b_ij + vj x u_ij
-          votes_reshaped = tf.reshape(
-              votes, shape=[-1, 1, self.output_dim, 1, self.output_atoms])
-          votes_reshaped = tf.tile(
-              votes_reshaped,
-              [1, input_dim, 1, 1, 1],
-              name='votes_reshaped')
-          # votes_reshaped shape:
-          # (batch_size, input_dim, output_dim, 1, output_atoms)
-          assert votes_reshaped.get_shape() == (
-              batch_size, input_dim, self.output_dim, 1, self.output_atoms)
+        # ( , , , 1, output_atoms) x ( , , , output_atoms, 1)
+        # -> squeeze -> (batch_size, input_dim, output_dim, 1, 1)
+        delta_b_ij = tf.matmul(votes_reshaped, u_hat_stop)
+        # delta_b_ij shape: (batch_size, input_dim, output_dim, 1)
 
-          # ( , , , 1, output_atoms) x ( , , , output_atoms, 1)
-          # -> squeeze -> (batch_size, input_dim, output_dim, 1, 1)
-          delta_b_ij = tf.matmul(
-              votes_reshaped, u_hat_stop, name='delta_b')
-          # delta_b_ij shape: (batch_size, input_dim, output_dim, 1)
-          assert delta_b_ij.get_shape() == (
-              batch_size, input_dim, self.output_dim, 1, 1)
+        b_ij = tf.add(b_ij, delta_b_ij)
+        # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
 
-          b_ij = tf.add(b_ij, delta_b_ij, name='b')
-          # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
-          assert b_ij.get_shape() == (
-              batch_size, input_dim, self.output_dim, 1, 1)
-
-    # votes_out shape: (batch_size, output_dim, output_atoms, 1)
-    assert votes.get_shape() == (
-        batch_size, self.output_dim, self.output_atoms, 1)
-
+    # votes shape: (batch_size, output_dim, output_atoms, 1)
     return votes
 
   def __call__(self, inputs):
@@ -738,21 +709,16 @@ class ConvSlimCapsuleV2(ModelBase):
       # caps shape:
       # (batch_size, self.output_dim * self.output_atoms,
       #  output_height, output_width)
-      caps_shape = caps.get_shape().as_list()
-      num_capsule = caps_shape[2] * caps_shape[3] * self.output_dim
-
-      # reshaped caps shape: (batch_size, num_capsule, output_atoms, 1)
-      # num_capsule = output_dim * output_height * output_width
+      # reshaped caps shape:
+      # (batch_size, output_dim * output_height * output_width, output_atoms, 1)
       caps = tf.transpose(caps, [0, 2, 3, 1])
       caps = tf.reshape(caps, [batch_size, -1, self.output_atoms, 1])
-      assert caps.get_shape() == (
-        batch_size, num_capsule, self.output_atoms, 1)
 
       # Applying activation function
       act_fn_caps = self._get_act_fn(self.caps_act_fn)
       self.output = tf.squeeze(act_fn_caps(caps), axis=-1)
-      # caps_activated shape: (batch_size, num_capsule, output_atoms)
-      assert self.output.get_shape() == (
-        batch_size, num_capsule, self.output_atoms)
+      # caps_activated shape:
+      # (batch_size, output_dim * output_height * output_width,
+      #  output_atoms, output_atoms)
 
       return self.output
