@@ -556,7 +556,7 @@ class CapsuleV2(ModelBase):
           batch_size, self.output_dim, self.output_atoms, 1)
 
       # Applying Squashing
-      _votes = act_fn(_s_j, batch_size, cfg_.EPSILON)
+      _votes = act_fn(_s_j)
       # _votes shape: (batch_size, output_dim, output_atoms, 1)
       assert _votes.get_shape() == (
           batch_size, self.output_dim, self.output_atoms, 1)
@@ -727,7 +727,7 @@ class ConvSlimCapsuleV2(ModelBase):
           inputs.get_shape().as_list()
 
       # Convolution layer
-      activation_fn = self._get_act_fn()
+      activation_fn = squash if self.act_fn == 'squash' else None
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
       biases_initializer = tf.zeros_initializer() if self.use_bias else None
@@ -765,7 +765,7 @@ class ConvSlimCapsuleV2(ModelBase):
       # (batch_size, self.output_dim * self.output_atoms,
       #  output_height, output_width)
       caps_shape = caps.get_shape().as_list()
-      num_capsule = caps_shape[1] * caps_shape[2] * self.output_dim
+      num_capsule = caps_shape[2] * caps_shape[3] * self.output_dim
 
       # reshaped caps shape: (batch_size, num_capsule, output_atoms, 1)
       # num_capsule = output_dim * output_height * output_width
