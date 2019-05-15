@@ -33,7 +33,7 @@ __C.DATABASE_NAME = 'mnist'
 __C.DATABASE_MODE = None
 
 # Database name for fine-tuning
-__C.FT_DATABASE_NAME = 'mnist'
+__C.FT_DATABASE_NAME = 'mnist_100'
 
 # Training version
 # Set None to auto generate version
@@ -51,7 +51,7 @@ __C.LR_DECAY_STEPS = 2000
 __C.LR_DECAY_RATE = 0.96
 
 # Epochs
-__C.EPOCHS = 50
+__C.EPOCHS = 20
 
 # Batch size
 __C.BATCH_SIZE = 512

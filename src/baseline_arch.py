@@ -37,49 +37,50 @@ def model_arch(inputs, labels, input_imgs,
           act_fn='relu',
           idx=0
       ))
-      # model.add(Capsule4Dto5D())
-      # model.add(ConvSlimCapsule(
-      #     cfg,
-      #     output_dim=32,
-      #     output_atoms=8,
-      #     num_routing=1,
-      #     leaky=False,
-      #     kernel_size=9,
-      #     stride=2,
-      #     padding='VALID',
-      #     act_fn='squash',
-      #     idx=0
-      # ))
-      # model.add(Capsule5Dto3D())
-      # model.add(Capsule(
-      #     cfg,
-      #     output_dim=10,
-      #     output_atoms=16,
-      #     num_routing=3,
-      #     leaky=False,
-      #     act_fn='squash',
-      #     idx=1
-      # ))
-      model.add(ConvSlimCapsuleV2(
+      model.add(Capsule4Dto5D())
+      model.add(ConvSlimCapsule(
           cfg,
           output_dim=32,
           output_atoms=8,
+          num_routing=1,
+          leaky=False,
           kernel_size=9,
-          stride=1,
+          stride=2,
           padding='VALID',
-          conv_act_fn='relu',
-          caps_act_fn='squash_v2',
+          conv_act_fn=None,
+          caps_act_fn='squash',
           idx=0
       ))
-      model.add(CapsuleV2(
+      model.add(Capsule5Dto3D())
+      model.add(Capsule(
           cfg,
           output_dim=10,
           output_atoms=16,
           num_routing=3,
-          act_fn='squash_v2',
-          share_weights=False,
+          leaky=False,
+          act_fn='squash',
           idx=1
       ))
+      # model.add(ConvSlimCapsuleV2(
+      #     cfg,
+      #     output_dim=32,
+      #     output_atoms=8,
+      #     kernel_size=9,
+      #     stride=1,
+      #     padding='VALID',
+      #     conv_act_fn='relu',
+      #     caps_act_fn='squash_v2',
+      #     idx=0
+      # ))
+      # model.add(CapsuleV2(
+      #     cfg,
+      #     output_dim=10,
+      #     output_atoms=16,
+      #     num_routing=3,
+      #     act_fn='squash_v2',
+      #     share_weights=False,
+      #     idx=1
+      # ))
       model.add_name('clf_logits')
 
       clf_loss, clf_preds = model.get_loss(
