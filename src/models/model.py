@@ -528,7 +528,7 @@ class ModelMultiTasks(ModelDistribute):
           loss_task, acc_task, clf_loss_task, clf_preds_task, \
               rec_loss_task, rec_imgs_task = self._inference(
                   x_task, y_task, imgs_task, 
-                num_class=num_class, is_training=is_training)
+                  num_class=num_class, is_training=is_training)
 
           # Calculate the gradients on this task.
           grads_task = optimizer.compute_gradients(loss_task)
