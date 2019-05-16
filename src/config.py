@@ -59,7 +59,7 @@ __C.BATCH_SIZE = 512
 # Data format
 # 'NCHW': (batch, channel, height, width)
 # 'NHWC': (batch, height, width, channel)
-__C.DATA_FORMAT = 'NCHW'
+__C.DATA_FORMAT = 'NHWC'
 
 
 # ===========================================
