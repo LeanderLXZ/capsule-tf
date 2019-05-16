@@ -263,7 +263,7 @@ class ModelDistribute(Model):
     return loss, accuracy, clf_loss, clf_preds, rec_loss, rec_imgs
 
   def _calc_on_gpu(self, gpu_idx, x_tower, y_tower,
-                   imgs_tower, is_training, optimizer):
+                   imgs_tower, num_class, is_training, optimizer):
 
     # Calculate the loss for one tower.
     loss_tower, acc_tower, clf_loss_tower, clf_preds_tower, \
@@ -337,7 +337,7 @@ class ModelDistribute(Model):
               grads_tower, loss_tower, acc_tower, clf_loss_tower, \
                   clf_preds_tower, rec_loss_tower, rec_imgs_tower = \
                   self._calc_on_gpu(i, x_tower, y_tower, imgs_tower,
-                                    is_training, optimizer)
+                                    num_class, is_training, optimizer)
 
               # Keep track of the gradients across all towers.
               grads_all.append(grads_tower)
@@ -501,8 +501,8 @@ class ModelMultiTasks(ModelDistribute):
     return loss_tower, acc_tower, clf_loss_tower, \
         clf_preds_tower, rec_loss_tower, rec_imgs_tower
 
-  def _calc_on_gpu(self, gpu_idx, x_tower, y_tower,
-                   imgs_tower, is_training, optimizer):
+  def _calc_on_gpu(self, gpu_idx, x_tower, y_tower, imgs_tower,
+                   num_class, is_training, optimizer):
 
     # Split data for each tower
     x_splits_task = tf.split(

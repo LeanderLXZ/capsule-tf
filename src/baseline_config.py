@@ -81,7 +81,7 @@ __C.RESIZE_IMAGES = False
 __C.IMAGE_SIZE = (28, 28)
 
 # Using data augment
-__C.USE_DATA_AUG = True
+__C.USE_DATA_AUG = False
 # Parameters for data augment
 __C.DATA_AUG_PARAM = dict(
     rotation_range=40,
@@ -98,10 +98,10 @@ __C.DATA_AUG_KEEP_SOURCE = True
 __C.MAX_IMAGE_NUM = 10000
 
 # Preprocessing images of superpositions of multi-objects
-# If None, one image only shows one object.
+# If None, do not generate multi-objects images.
 # If n, one image includes a superposition of n objects, the positions of
 # those objects are random.
-__C.NUM_MULTI_OBJECT = 2
+__C.NUM_MULTI_OBJECT = None
 # The number of multi-objects images
 __C.NUM_MULTI_IMG = 10000
 # If overlap, the multi-objects will be overlapped in a image.
@@ -237,7 +237,7 @@ __C.EVAL_WITH_FULL_TRAIN_SET = False
 __C.TEST_SO_MODE = 'after_training'  # 'per_epoch'
 
 # Evaluate on multi-objects test set
-__C.TEST_MO_MODE = 'after_training'  # 'per_epoch'
+__C.TEST_MO_MODE = None  # 'per_epoch'
 
 
 # ===========================================
