@@ -103,21 +103,22 @@ def load_large_data_from_pkl(data_path, n_parts=2, verbose=True):
   """Save large data to pickle file."""
   if verbose:
     print('Loading {}.p from {} parts...'.format(data_path, n_parts))
-  data = []
+  data = None
   for i in range(n_parts):
     data_path_i = data_path + '_{}.p'.format(i)
     with open(data_path_i, 'rb') as f:
       if verbose:
         print('Loading {}...'.format(f.name))
-      data.append(pickle.load(f))
-  concat = np.concatenate(data, axis=0)
-  assert concat.shape[1:] == data[0].shape[1:]
+      if i == 0:
+        data = pickle.load(f)
+      else:
+        data = np.concatenate([data, pickle.load(f)], axis=0)
 
   if verbose:
-    print('Total Size: {:.4}Gb'.format(concat / (10**9)))
-    print('Data Shape: ', concat.shape)
+    print('Total Size: {:.4}Gb'.format(data.nbytes / (10**9)))
+    print('Data Shape: ', data.shape)
 
-  return concat
+  return data
 
 
 def check_dir(path_list):

@@ -32,9 +32,12 @@ __C.DATABASE_NAME = 'mnist'
 # __C.DATABASE_MODE = 'small'
 __C.DATABASE_MODE = None
 
+# Database name for fine-tuning
+__C.FT_DATABASE_NAME = 'mnist_100'
+
 # Training version
 # Set None to auto generate version
-__C.VERSION = 'baseline'
+__C.VERSION = None
 
 # Learning rate
 __C.LEARNING_RATE = 0.001
@@ -48,10 +51,10 @@ __C.LR_DECAY_STEPS = 2000
 __C.LR_DECAY_RATE = 0.96
 
 # Epochs
-__C.EPOCHS = 50
+__C.EPOCHS = 20
 
 # Batch size
-__C.BATCH_SIZE = 2048
+__C.BATCH_SIZE = 512
 
 
 # ===========================================
@@ -224,9 +227,6 @@ __C.MAX_TO_KEEP_CKP = 3
 # Calculate the train loss of full data set, which may take lots of time.
 __C.EVAL_WITH_FULL_TRAIN_SET = False
 
-# Show details of training progress
-__C.SHOW_TRAINING_DETAILS = False
-
 # -------------------------------------------
 # Test
 # 'after_training': evaluate after all training finished
@@ -234,10 +234,10 @@ __C.SHOW_TRAINING_DETAILS = False
 # None: Do not test
 
 # Evaluate on single-object test set
-__C.TEST_SO_MODE = 'per_epoch'
+__C.TEST_SO_MODE = 'after_training'  # 'per_epoch'
 
 # Evaluate on multi-objects test set
-__C.TEST_MO_MODE = 'per_epoch'
+__C.TEST_MO_MODE = 'after_training'  # 'per_epoch'
 
 
 # ===========================================
@@ -264,7 +264,7 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
-__C.TOP_N_LIST = [5, 10, 20]
+__C.TOP_N_LIST = [2, 5]
 
 # -------------------------------------------
 # Multi-objects detection

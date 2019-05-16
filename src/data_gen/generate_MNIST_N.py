@@ -8,7 +8,7 @@ import os
 import random
 import csv
 import time
-from PIL import Image
+import sklearn
 from tqdm import tqdm
 from os.path import join, isdir
 
@@ -182,7 +182,17 @@ def data_gen(train_images,
           images.append(merged_img)
           labels.append(i * 10 + j)
           count += 1
-  return np.array(images, dtype=int), np.array(labels, dtype=int)
+          
+  images = np.expand_dims(np.array(images, dtype=int), axis=-1)
+  labels = np.array(labels, dtype=int)
+  
+  return images, labels
+
+
+def shuffle(x, y, seed=None):
+  
+  print('Shuffling images and labels...')
+  return sklearn.utils.shuffle(x, y, random_state=seed)
 
 
 if __name__ == '__main__':
@@ -214,15 +224,15 @@ if __name__ == '__main__':
       img_size=(56, 56),
       rotate_range=(-10, 10)
   )
+  
+  train_images_new, train_labels_new = shuffle(
+      train_images_new, train_labels_new)
+  test_images_new, test_labels_new = shuffle(
+      test_images_new, test_labels_new)
 
   save_data_to_pkl(train_images_new, join(save_path, 'train_images.p'))
   save_data_to_pkl(train_labels_new, join(save_path, 'train_labels.p'))
   save_data_to_pkl(test_images_new, join(save_path, 'test_images.p'))
   save_data_to_pkl(test_labels_new, join(save_path, 'test_labels.p'))
-
-  train_imgs_ = load_pkls(save_path, 'train_images')
-  train_labels_ = load_pkls(save_path, 'train_labels')
-  square_grid_show_imgs(train_imgs_[:25], mode='L')
-  print(train_labels_[:25])
 
   print('Done! Using {:.4}s'.format(time.time() - start_time))

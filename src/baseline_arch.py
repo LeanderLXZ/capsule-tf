@@ -7,8 +7,8 @@ from models.capsule_layers import *
 from models.loss_funcitons import *
 
 
-def model_arch(inputs, labels, input_imgs,
-               cfg, is_training=None, restore_vars_dict=None):
+def model_arch(cfg, inputs, labels, input_imgs, num_class,
+               is_training=None, restore_vars_dict=None):
 
   if cfg.CLF_LOSS == 'margin':
     clf_loss_fn = margin_loss
@@ -54,7 +54,7 @@ def model_arch(inputs, labels, input_imgs,
       model.add(Capsule5Dto3D())
       model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
           leaky=False,
@@ -169,7 +169,7 @@ def model_arch(inputs, labels, input_imgs,
       ), weights=w_caps_1, biases=b_caps_1, trainable=True)
       model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
           leaky=False,

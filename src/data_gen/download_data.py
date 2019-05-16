@@ -3,9 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 from os.path import join
-
-from config import config as cfg
 import utils
+
+
+SOURCE_DATA_PATH = '../data/source_data'
 
 
 # Download database
@@ -22,7 +23,7 @@ def download_data(data_base_name):
     TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
     TEST_LABELS = 't10k-labels-idx1-ubyte.gz'
 
-    source_data_path_ = join(cfg.SOURCE_DATA_PATH, 'mnist')
+    source_data_path_ = join(SOURCE_DATA_PATH, 'mnist')
     utils.check_dir([source_data_path_])
 
     utils.download_and_extract_mnist(
@@ -54,13 +55,13 @@ def download_data(data_base_name):
     SOURCE_URL = 'https://www.cs.toronto.edu/~kriz/'
     FILE_NAME = 'cifar-10-python.tar.gz'
 
-    utils.check_dir([cfg.SOURCE_DATA_PATH])
+    utils.check_dir([SOURCE_DATA_PATH])
 
     utils.download_and_extract_cifar10(
         url=SOURCE_URL + FILE_NAME,
-        save_path=cfg.SOURCE_DATA_PATH,
+        save_path=SOURCE_DATA_PATH,
         file_name=FILE_NAME,
-        extract_path=cfg.SOURCE_DATA_PATH
+        extract_path=SOURCE_DATA_PATH
     )
 
   else:

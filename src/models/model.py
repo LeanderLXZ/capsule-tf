@@ -88,6 +88,7 @@ class Model(object):
                  inputs,
                  labels,
                  input_imgs,
+                 num_class,
                  is_training=None):
     """Build inference graph.
 
@@ -95,6 +96,7 @@ class Model(object):
       inputs: input tensor.
         - shape (batch_size, *input_size)
       labels: labels tensor.
+      num_class: number of class of label.
       input_imgs: ground truth images.
       is_training: Whether or not the model is in training mode.
 
@@ -103,8 +105,8 @@ class Model(object):
         - shape: (batch_size, num_caps, vec_dim)
     """
     loss, clf_loss, clf_preds, rec_loss, rec_imgs, self.model_arch_info = \
-        self.model_arch(inputs, labels, input_imgs,
-                        self.cfg, is_training=is_training,
+        self.model_arch(self.cfg, inputs, labels, input_imgs,
+                        num_class=num_class, is_training=is_training,
                         restore_vars_dict=self.restore_vars_dict)
 
     # Accuracy
@@ -152,7 +154,7 @@ class Model(object):
 
       # Build inference Graph
       loss, accuracy, clf_loss, clf_preds, rec_loss, rec_imgs = self._inference(
-          inputs, labels, input_imgs, is_training=is_training)
+          inputs, labels, input_imgs, num_class=num_class, is_training=is_training)
 
       # Optimizer
       train_op = optimizer.minimize(loss)
@@ -266,7 +268,8 @@ class ModelDistribute(Model):
     # Calculate the loss for one tower.
     loss_tower, acc_tower, clf_loss_tower, clf_preds_tower, \
         rec_loss_tower, rec_imgs_tower = self._inference(
-            x_tower, y_tower, imgs_tower, is_training=is_training)
+            x_tower, y_tower, imgs_tower, 
+            num_class=num_class, is_training=is_training)
 
     # Calculate the gradients on this tower.
     grads_tower = optimizer.compute_gradients(loss_tower)
@@ -524,7 +527,8 @@ class ModelMultiTasks(ModelDistribute):
           # Calculate the loss for one task.
           loss_task, acc_task, clf_loss_task, clf_preds_task, \
               rec_loss_task, rec_imgs_task = self._inference(
-                  x_task, y_task, imgs_task, is_training=is_training)
+                  x_task, y_task, imgs_task, 
+                num_class=num_class, is_training=is_training)
 
           # Calculate the gradients on this task.
           grads_task = optimizer.compute_gradients(loss_task)
