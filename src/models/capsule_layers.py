@@ -154,7 +154,8 @@ class Capsule(ModelBase):
 
         batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
 
-        # weights_initializer = tf.contrib.layers.xavier_initializer()
+        # weights_initializer = tf.truncated_normal_initializer(
+        #     stddev=0.01, dtype=tf.float32)
         # biases_initializer = tf.zeros_initializer()
         weights_initializer = tf.truncated_normal_initializer(
             stddev=0.1, dtype=tf.float32)

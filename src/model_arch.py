@@ -7,8 +7,8 @@ from models.capsule_layers import *
 from models.loss_funcitons import *
 
 
-def model_arch(inputs, labels, input_imgs,
-               cfg, is_training=None, restore_vars_dict=None):
+def model_arch(cfg, inputs, labels, input_imgs, num_class,
+               is_training=None, restore_vars_dict=None):
 
   if cfg.CLF_LOSS == 'margin':
     clf_loss_fn = margin_loss
@@ -37,50 +37,26 @@ def model_arch(inputs, labels, input_imgs,
           act_fn='relu',
           idx=0
       ))
-      model.add(Capsule4Dto5D())
-      model.add(ConvSlimCapsule(
+      model.add(ConvSlimCapsuleV2(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
-          stride=2,
+          stride=1,
           padding='VALID',
-          conv_act_fn=None,
-          caps_act_fn='squash',
+          conv_act_fn='relu',
+          caps_act_fn='squash_v2',
           idx=0
       ))
-      model.add(Capsule5Dto3D())
-      model.add(Capsule(
+      model.add(CapsuleV2(
           cfg,
           output_dim=10,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
-          act_fn='squash',
+          act_fn='squash_v2',
+          share_weights=False,
           idx=1
       ))
-      # model.add(ConvSlimCapsuleV2(
-      #     cfg,
-      #     output_dim=32,
-      #     output_atoms=8,
-      #     kernel_size=9,
-      #     stride=1,
-      #     padding='VALID',
-      #     conv_act_fn='relu',
-      #     caps_act_fn='squash_v2',
-      #     idx=0
-      # ))
-      # model.add(CapsuleV2(
-      #     cfg,
-      #     output_dim=10,
-      #     output_atoms=16,
-      #     num_routing=3,
-      #     act_fn='squash_v2',
-      #     share_weights=False,
-      #     idx=1
-      # ))
       model.add_name('clf_logits')
 
       clf_loss, clf_preds = model.get_loss(
@@ -143,33 +119,29 @@ def model_arch(inputs, labels, input_imgs,
           act_fn='relu',
           idx=0
       ), weights=w_conv_0, biases=b_conv_0, trainable=True)
-      model.add(Capsule4Dto5D())
-      model.add(ConvSlimCapsule(
+      model.add(ConvSlimCapsuleV2(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
-          stride=2,
+          stride=1,
           padding='VALID',
-          conv_act_fn=None,
-          caps_act_fn='squash',
+          conv_act_fn='relu',
+          caps_act_fn='squash_v2',
           idx=0
       ), weights=w_caps_0, biases=b_caps_0, trainable=True)
-      model.add(Capsule5Dto3D())
-      model.add(Capsule(
+      model.add(CapsuleV2(
           cfg,
           output_dim=10,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
-          act_fn='squash',
+          act_fn='squash_v2',
+          share_weights=False,
           idx=1
       ), weights=w_caps_1, biases=b_caps_1, trainable=True)
       model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
           leaky=False,
