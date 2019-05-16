@@ -9,24 +9,6 @@ def squash(x):
   """Applies norm non-linearity (squash) to a capsule layer.
 
   Args:
-    x: Input tensor. Shape is [batch, num_channels, num_atoms] for
-      a fully connected capsule layer or
-      [batch, num_channels, num_atoms, height, width] for a convolutional
-      capsule layer.
-
-  Returns:
-    A tensor with same shape as input (rank 3) for output of this layer.
-  """
-  with tf.name_scope('norm_non_linearity'):
-    norm = tf.norm(x, axis=2, keep_dims=True)
-    norm_squared = norm * norm
-    return (x / norm) * (norm_squared / (1 + norm_squared))
-
-
-def squash_v2(x):
-  """Squashing function version 2.0
-
-  Args:
     x: A tensor with shape: (batch_size, num_caps, vec_dim[, 1]).
 
   Returns:
@@ -40,3 +22,22 @@ def squash_v2(x):
   scalar_factor = tf.div(vec_squared_norm, 1 + vec_squared_norm)
   unit_vec = tf.div(x, tf.sqrt(vec_squared_norm + 1e-9))
   return tf.multiply(scalar_factor, unit_vec)
+
+
+def squash_v2(x):
+  """Squashing function version 2.0
+
+  Args:
+    x: Input tensor. Shape is [batch, num_channels, num_atoms] for
+      a fully connected capsule layer or
+      [batch, num_channels, num_atoms, height, width] for a convolutional
+      capsule layer.
+
+  Returns:
+    A tensor with same shape as input (rank 3) for output of this layer.
+  """
+  with tf.name_scope('norm_non_linearity'):
+    norm = tf.norm(x, axis=2, keep_dims=True)
+    norm_squared = norm * norm
+    return (x / norm) * (norm_squared / (1 + norm_squared))
+

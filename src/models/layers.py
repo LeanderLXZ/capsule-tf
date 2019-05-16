@@ -62,7 +62,8 @@ class ModelBase(object):
     self.assign_vars = False
     self.weights = None
     self.biases = None
-    self.trainable = True
+    self.w_trainable = True
+    self.b_trainable = True
 
   @property
   def params(self):
@@ -297,7 +298,7 @@ class Conv(ModelBase):
 
       self.output = tf.nn.conv2d(input=inputs,
                                  filter=weights,
-                                 strides=[1,1, self.stride, self.stride],
+                                 strides=[1, 1, self.stride, self.stride],
                                  padding=self.padding,
                                  data_format='NCHW')
 
@@ -381,7 +382,7 @@ class ConvT(ModelBase):
           value=inputs,
           filter=weights,
           output_shape=self.conv_t_output_shape,
-          strides=[1,1, self.stride, self.stride],
+          strides=[1, 1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )
@@ -401,7 +402,7 @@ class MaxPool(ModelBase):
   def __init__(self,
                cfg,
                pool_size=None,
-               strides=None,
+               stride=None,
                padding='valid',
                idx=None):
     """Max Pooling layer.
@@ -409,14 +410,14 @@ class MaxPool(ModelBase):
     Args:
       cfg: configuration
       pool_size: specifying the size of the pooling window
-      strides: specifying the strides of the pooling operation
+      stride: specifying the strides of the pooling operation
       padding: the padding method, either 'valid' or 'same'
       idx: index of layer
     """
     super(MaxPool, self).__init__()
     self.cfg = cfg
     self.pool_size = pool_size
-    self.strides = strides
+    self.stride = stride
     self.padding = padding
     self.idx = idx
 
@@ -433,7 +434,7 @@ class MaxPool(ModelBase):
       self.output = tf.layers.max_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=[1,1, self.stride, self.stride],
+          strides=[1, 1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )
@@ -446,7 +447,7 @@ class AveragePool(ModelBase):
   def __init__(self,
                cfg,
                pool_size=None,
-               strides=None,
+               stride=None,
                padding='valid',
                idx=None):
     """Average Pooling layer.
@@ -454,14 +455,14 @@ class AveragePool(ModelBase):
     Args:
       cfg: configuration
       pool_size: specifying the size of the pooling window
-      strides: specifying the strides of the pooling operation
+      stride: specifying the strides of the pooling operation
       padding: the padding method, either 'valid' or 'same'
       idx: index of layer
     """
     super(AveragePool, self).__init__()
     self.cfg = cfg
     self.pool_size = pool_size
-    self.strides = strides
+    self.stride = stride
     self.padding = padding
     self.idx = idx
 
@@ -478,7 +479,7 @@ class AveragePool(ModelBase):
       self.output = tf.layers.average_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=[1,1, self.stride, self.stride],
+          strides=[1, 1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )
@@ -503,7 +504,7 @@ class GlobalAveragePool(ModelBase):
     """
     with tf.variable_scope('gap'):
       assert inputs.get_shape().ndims == 4
-      self.output = tf.reduce_mean(inputs, [2, 3])
+      self.output = tf.reduce_mean(inputs, [1, 2])
     return self.output
 
 
