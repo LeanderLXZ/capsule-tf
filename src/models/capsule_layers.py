@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from models.layers import ModelBase
+from models.variables import tf_variable
 
 
 def _leaky_routing(logits,
@@ -470,22 +471,21 @@ class CapsuleV2(ModelBase):
     self.share_weights = share_weights
     self.idx = idx
 
-  def dynamic_routing(self, inputs, weights, biases, act_fn):
-    """Dynamic routing according to Hinton's paper.
+  def _dynamic_routing(self, inputs, weights, biases, act_fn):
+    """Dynamic routing.
 
     Args:
       inputs: input tensor
-        - shape: [batch_size, input_dim, input_atoms, 1]
+        - shape: [batch_size, input_dim, input_atoms]
       weights: weights matrix
-      biases: biases
+      biases: b_ij
       act_fn: activation function
 
     Returns:
       output tensor
-        - shape: [batch_size, output_dim, output_atoms, 1]
+        - shape: [batch_size, output_dim, output_atoms]
     """
-    batch_size, input_dim, input_atoms, _ = inputs.get_shape().as_list()
-    votes = None
+    batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
 
     # Reshape input tensor
     inputs_shape_new = [batch_size, input_dim, 1, input_atoms, 1]
@@ -503,17 +503,17 @@ class CapsuleV2(ModelBase):
     # Calculating u_hat
     # ( , , , self.output_atoms, vec_dim_i) x ( , , , vec_dim_i, 1)
     # -> ( , , , output_atoms, 1) -> squeeze -> ( , , , output_atoms)
-    u_hat = tf.matmul(weights, inputs, name='u_hat')
+    u_hat = tf.matmul(weights, inputs)
     # u_hat shape: (batch_size, input_dim, output_dim, output_atoms, 1)
 
     # u_hat_stop
     # Do not transfer the gradient of u_hat_stop during back-propagation
-    u_hat_stop = tf.stop_gradient(u_hat, name='u_hat_stop')
+    u_hat_stop = tf.stop_gradient(u_hat)
 
     # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
     b_ij = biases
 
-    def _sum_and_activate(_u_hat, _c_ij, name=None):
+    def _sum_and_activate(_u_hat, _c_ij):
       """Get sum of vectors and apply activation function."""
       # Calculating s_j(using u_hat)
       # Using u_hat but not u_hat_stop in order to transfer gradients.
@@ -524,7 +524,7 @@ class CapsuleV2(ModelBase):
       _votes = act_fn(_s_j)
       # _votes shape: (batch_size, output_dim, output_atoms, 1)
 
-      _votes = tf.identity(_votes, name=name)
+      _votes = tf.identity(_votes)
 
       return _votes
 
@@ -567,7 +567,8 @@ class CapsuleV2(ModelBase):
         b_ij = tf.add(b_ij, delta_b_ij)
         # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
 
-    # votes shape: (batch_size, output_dim, output_atoms, 1)
+    # votes shape: (batch_size, output_dim, output_atoms)
+    votes = tf.squeeze(votes, axis=-1)
     return votes
 
   def __call__(self, inputs):
@@ -585,9 +586,6 @@ class CapsuleV2(ModelBase):
 
       batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
 
-      # shape: [batch, input_dim, input_atoms, 1]
-      inputs = tf.expand_dims(inputs, -1)
-
       # weights_initializer = tf.contrib.layers.xavier_initializer()
       weights_initializer = tf.truncated_normal_initializer(
           stddev=0.01, dtype=tf.float32)
@@ -604,16 +602,16 @@ class CapsuleV2(ModelBase):
           biases_shape=[batch_size, input_dim, self.output_dim, 1, 1],
           weights_initializer=weights_initializer,
           biases_initializer=biases_initializer,
+          biases_trainable=False,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
 
-      self.votes = self.dynamic_routing(
+      self.output = self._dynamic_routing(
           inputs=inputs,
           weights=weights,
           biases=biases,
           act_fn=self._get_act_fn(self.act_fn)
       )
-      self.output = tf.squeeze(self.votes, axis=-1)
 
     return self.output
 
@@ -694,7 +692,7 @@ class ConvSlimCapsuleV2(ModelBase):
       caps = tf.nn.conv2d(
           input=inputs,
           filter=weights,
-          strides=[1, self.stride, self.stride, 1],
+          strides=[1, 1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )

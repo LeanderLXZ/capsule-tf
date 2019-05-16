@@ -76,11 +76,16 @@ class ModelBase(object):
   def output_shape(self):
     return self.output.get_shape().as_list()
 
-  def assign_variables(self, weights, biases, trainable=True):
+  def assign_variables(self, 
+                       weights, 
+                       biases,
+                       w_trainable=True,
+                       b_trainable=True):
     self.assign_vars = True
     self.weights = weights
     self.biases = biases
-    self.trainable = trainable
+    self.w_trainable = w_trainable
+    self.b_trainable = b_trainable
 
   def _get_variables(self,
                      use_bias=True,
@@ -88,17 +93,20 @@ class ModelBase(object):
                      biases_shape=None,
                      weights_initializer=tf.contrib.layers.xavier_initializer(),
                      biases_initializer=tf.zeros_initializer(),
+                     weights_trainable=True,
+                     biases_trainable=True,
                      store_on_cpu=True):
     if self.assign_vars:
       assert weights_shape == list(self.weights.shape), \
         'Shapes of weights are not matched: {} & {}'.format(
             weights_shape, self.weights.shape)
       weights_initializer = tf.constant_initializer(self.weights)
+      weights_trainable = self.w_trainable
     weights = tf_variable(name='weights',
                           shape=weights_shape,
                           initializer=weights_initializer,
                           store_on_cpu=store_on_cpu,
-                          trainable=self.trainable)
+                          trainable=weights_trainable)
 
     if use_bias:
       if self.assign_vars:
@@ -106,11 +114,12 @@ class ModelBase(object):
           'Shapes of biases are not matched: {} & {}'.format(
               biases_shape, self.biases.shape)
         biases_initializer = tf.constant_initializer(self.biases)
+        biases_trainable = self.b_trainable
       biases = tf_variable(name='biases',
                            shape=biases_shape,
                            initializer=biases_initializer,
                            store_on_cpu=store_on_cpu,
-                           trainable=self.trainable)
+                           trainable=biases_trainable)
     else:
       biases = None
 
@@ -288,7 +297,7 @@ class Conv(ModelBase):
 
       self.output = tf.nn.conv2d(input=inputs,
                                  filter=weights,
-                                 strides=[1, self.stride, self.stride, 1],
+                                 strides=[1,1, self.stride, self.stride],
                                  padding=self.padding,
                                  data_format='NCHW')
 
@@ -372,7 +381,7 @@ class ConvT(ModelBase):
           value=inputs,
           filter=weights,
           output_shape=self.conv_t_output_shape,
-          strides=[1, self.stride, self.stride, 1],
+          strides=[1,1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )
@@ -424,7 +433,7 @@ class MaxPool(ModelBase):
       self.output = tf.layers.max_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=self.strides,
+          strides=[1,1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )
@@ -469,7 +478,7 @@ class AveragePool(ModelBase):
       self.output = tf.layers.average_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=self.strides,
+          strides=[1,1, self.stride, self.stride],
           padding=self.padding,
           data_format='NCHW'
       )

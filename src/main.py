@@ -666,8 +666,8 @@ if __name__ == '__main__':
     mode_ = 'multi-gpu'
   elif args.gpu:
     utils.thick_line()
-    print('Running single version. Using /gpu: %d' % args.gpu)
-    environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+    print('Running single version. Using /gpu: %d' % args.gpu[0])
+    environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu[0])
     mode_ = 'single-gpu'
   else:
     utils.thick_line()
