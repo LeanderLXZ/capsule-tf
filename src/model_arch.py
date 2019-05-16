@@ -27,7 +27,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      if cfg.DATA_FORMAT == 'NHWC':
+      if cfg.DATA_FORMAT == 'NCHW':
         model.add(NHWC2NCHW())
 
       model.add(Conv(
@@ -111,7 +111,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      if cfg.DATA_FORMAT == 'NHWC':
+      if cfg.DATA_FORMAT == 'NCHW':
         model.add(NHWC2NCHW())
       model.add(Conv(
           cfg,
