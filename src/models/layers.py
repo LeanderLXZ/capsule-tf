@@ -127,6 +127,15 @@ class ModelBase(object):
     return weights, biases
 
   @staticmethod
+  def _get_strides_list(stride, data_format):
+    if data_format == 'NCHW':
+      return [1, 1, stride, stride]
+    elif data_format == 'NHWC':
+      return [1, stride, stride, 1]
+    else:
+      raise ValueError('Wrong data format!')
+
+  @staticmethod
   def _get_act_fn(fn_name):
     """
     Helper to get activation function from name.
@@ -296,14 +305,17 @@ class Conv(ModelBase):
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
 
-      self.output = tf.nn.conv2d(input=inputs,
-                                 filter=weights,
-                                 strides=[1, 1, self.stride, self.stride],
-                                 padding=self.padding,
-                                 data_format='NCHW')
+      self.output = tf.nn.conv2d(
+          input=inputs,
+          filter=weights,
+          strides=self._get_strides_list(self.stride, self.cfg.DATA_FORMAT),
+          padding=self.padding,
+          data_format=self.cfg.DATA_FORMAT
+      )
 
       if self.use_bias:
-        self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
+        self.output = tf.nn.bias_add(
+            self.output, biases, data_format=self.cfg.DATA_FORMAT)
 
       if self.act_fn is not None:
         activation_function = self._get_act_fn(self.act_fn)
@@ -382,13 +394,14 @@ class ConvT(ModelBase):
           value=inputs,
           filter=weights,
           output_shape=self.conv_t_output_shape,
-          strides=[1, 1, self.stride, self.stride],
+          strides=self._get_strides_list(self.stride, self.cfg.DATA_FORMAT),
           padding=self.padding,
-          data_format='NCHW'
+          data_format=self.cfg.DATA_FORMAT
       )
 
       if self.use_bias:
-        self.output = tf.nn.bias_add(self.output, biases, data_format='NCHW')
+        self.output = tf.nn.bias_add(
+            self.output, biases, data_format=self.cfg.DATA_FORMAT)
 
       if self.act_fn is not None:
         activation_function = self._get_act_fn(self.act_fn)
@@ -434,9 +447,9 @@ class MaxPool(ModelBase):
       self.output = tf.layers.max_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=[1, 1, self.stride, self.stride],
+          strides=self._get_strides_list(self.stride, self.cfg.DATA_FORMAT),
           padding=self.padding,
-          data_format='NCHW'
+          data_format=self.cfg.DATA_FORMAT
       )
 
     return self.output
@@ -479,9 +492,9 @@ class AveragePool(ModelBase):
       self.output = tf.layers.average_pooling2d(
           inputs=inputs,
           pool_size=self.pool_size,
-          strides=[1, 1, self.stride, self.stride],
+          strides=self._get_strides_list(self.stride, self.cfg.DATA_FORMAT),
           padding=self.padding,
-          data_format='NCHW'
+          data_format=self.cfg.DATA_FORMAT
       )
 
     return self.output
@@ -489,9 +502,14 @@ class AveragePool(ModelBase):
 
 class GlobalAveragePool(ModelBase):
 
-  def __init__(self):
-    """Global Average Pooling layer."""
+  def __init__(self, cfg):
+    """Global Average Pooling layer.
+
+    Args:
+      cfg: configuration
+    """
     super(GlobalAveragePool, self).__init__()
+    self.cfg = cfg
 
   def __call__(self, inputs):
     """Average Pooling layer.
@@ -504,7 +522,13 @@ class GlobalAveragePool(ModelBase):
     """
     with tf.variable_scope('gap'):
       assert inputs.get_shape().ndims == 4
-      self.output = tf.reduce_mean(inputs, [1, 2])
+      if self.cfg.DATA_FORMAT == 'NHWC':
+        self.output = tf.reduce_mean(inputs, [1, 2])
+      elif self.cfg.DATA_FORMAT == 'NCHW':
+        self.output = tf.reduce_mean(inputs, [2, 3])
+      else:
+        raise ValueError('Wrong data format!')
+
     return self.output
 
 
@@ -607,7 +631,7 @@ class NHWC2NCHW(ModelBase):
       inputs: 4D tensor of shape `[batch, height, width, channels]`.
 
     Returns:
-      output: 4D tensor of shape `[batch, channels, height, width]`.
+      output: 4D tensor of shape `[batch, channel, height, width]`.
     """
     self.output = tf.transpose(inputs, [0, 3, 1, 2])
     return self.output
@@ -622,7 +646,7 @@ class NCHW2NHWC(ModelBase):
     """Convert a NCHW tensor to NHWC tensor.
 
     Args:
-      inputs: 4D tensor of shape `[batch, channels, height, width]`.
+      inputs: 4D tensor of shape `[batch, channel, height, width]`.
 
     Returns:
       output: 4D tensor of shape `[batch, height, width, channels]`.

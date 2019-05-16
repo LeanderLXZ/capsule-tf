@@ -194,7 +194,7 @@ class ConvSlimCapsule(ModelBase):
                stride=None,
                padding='SAME',
                conv_act_fn='relu',
-               caps_act_fn='squash_v2',
+               caps_act_fn='squash',
                use_bias=True,
                idx=0):
     """Generate a Capsule layer using convolution kernel.
@@ -228,7 +228,8 @@ class ConvSlimCapsule(ModelBase):
 
     Args:
       inputs: input tensor
-        - [batch, input_channels, input_height, input_width]
+        - NHWC: [batch, input_height, input_width, input_channels]
+        - NCHW: [batch, input_channels, input_height, input_width]
 
     Returns:
       tensor of capsules
@@ -236,8 +237,14 @@ class ConvSlimCapsule(ModelBase):
     """
     with tf.variable_scope('caps_{}'.format(self.idx)):
 
-      batch_size, input_channels, input_height, input_width = \
+      if self.cfg.DATA_FORMAT == 'NHWC':
+        batch_size, input_height, input_width, input_channels = \
           inputs.get_shape().as_list()
+      elif self.cfg.DATA_FORMAT == 'NCHW':
+        batch_size, input_channels, input_height, input_width = \
+          inputs.get_shape().as_list()
+      else:
+        raise ValueError('Wrong data format!')
 
       # Convolution layer
       weights_initializer = tf.contrib.layers.xavier_initializer()
@@ -260,25 +267,34 @@ class ConvSlimCapsule(ModelBase):
       caps = tf.nn.conv2d(
           input=inputs,
           filter=weights,
-          strides=[1, 1, self.stride, self.stride],
+          strides=self._get_strides_list(self.stride, self.cfg.DATA_FORMAT),
           padding=self.padding,
-          data_format='NCHW'
+          data_format=self.cfg.DATA_FORMAT
       )
 
       if self.use_bias:
-        caps = tf.nn.bias_add(caps, biases, data_format='NCHW')
+        caps = tf.nn.bias_add(caps, biases, data_format=self.cfg.DATA_FORMAT)
 
       if self.conv_act_fn is not None:
         act_fn_conv = self._get_act_fn(self.conv_act_fn)
         caps = act_fn_conv(caps)
 
+      if self.cfg.DATA_FORMAT == 'NHWC':
+        # caps shape:
+        # (batch_size, output_height, output_width,
+        #  self.output_dim * self.output_atoms)
+        pass
+      elif self.cfg.DATA_FORMAT == 'NCHW':
+        # caps shape:
+        # (batch_size, self.output_dim * self.output_atoms,
+        #  output_height, output_width)
+        caps = tf.transpose(caps, [0, 2, 3, 1])
+      else:
+        raise ValueError('Wrong data format!')
+
       # Reshape and generating a capsule layer
-      # caps shape:
-      # (batch_size, self.output_dim * self.output_atoms,
-      #  output_height, output_width)
       # reshaped caps shape:
       # (batch_size, output_dim * output_height * output_width, output_atoms, 1)
-      caps = tf.transpose(caps, [0, 2, 3, 1])
       caps = tf.reshape(caps, [batch_size, -1, self.output_atoms, 1])
 
       # Applying activation function
@@ -299,7 +315,7 @@ class CapsuleV2(ModelBase):
                output_atoms,
                num_routing=3,
                leaky=False,
-               act_fn='squash',
+               act_fn='squash_v2',
                idx=0):
     """Single convolution layer
 
@@ -493,7 +509,7 @@ class ConvSlimCapsuleV2(CapsuleV2):
                stride=2,
                padding='SAME',
                conv_act_fn=None,
-               caps_act_fn='squash',
+               caps_act_fn='squash_v2',
                idx=0):
     """Builds a slim convolutional capsule layer.
 
@@ -670,8 +686,8 @@ class Mask(ModelBase):
     """Reshape a tensor.
 
     Args:
-      inputs: input tensor of shape
-      `[batch, input_dim, input_atoms]`.
+      inputs: input tensor
+        - shape: [batch, input_dim, input_atoms]
 
     Returns:
       masked tensor
@@ -684,18 +700,19 @@ class Mask(ModelBase):
 class Capsule5Dto3D(ModelBase):
 
   def __init__(self):
+    """Convert a capsule output tensor to 3D tensor"""
     super(Capsule5Dto3D, self).__init__()
 
   def __call__(self, inputs):
     """Convert a capsule output tensor to 3D tensor.
 
     Args:
-      inputs: 5D tensor of shape
-      `[batch, input_dim, input_atoms, input_height, input_width]`.
+      inputs: 5D tensor
+        - shape: [batch, input_dim, input_atoms, input_height, input_width]
 
     Returns:
-      output tensor of shape
-      `[batch, new_input_dim, input_atoms]`.
+      output tensor
+        - shape: [batch, new_input_dim, input_atoms]
     """
     batch_size, _, atoms, _, _ = inputs.get_shape().as_list()
     output = tf.transpose(inputs, [0, 1, 3, 4, 2])
@@ -705,20 +722,34 @@ class Capsule5Dto3D(ModelBase):
 
 class Capsule4Dto5D(ModelBase):
 
-  def __init__(self):
+  def __init__(self, cfg):
+    """Convert a conv2d output tensor to 5D tensor.
+
+    Args:
+      cfg: configuration
+    """
     super(Capsule4Dto5D, self).__init__()
+    self.cfg = cfg
 
   def __call__(self, inputs):
     """Convert a conv2d output tensor to 5D tensor.
 
     Args:
-      inputs: 4D tensor of shape
-      `[batch, input_channels, input_height, input_width]`.
+      inputs: 4D tensor
+        - NHWC: [batch, input_height, input_width, input_channels]
+        - NCHW: [batch, input_channels, input_height, input_width]
 
     Returns:
       output: 5D tensor of shape
-      `[batch, input_dim, input_atoms, input_height, input_width]`.
-      `[batch, 1, input_channels, input_height, input_width]`
+        - [batch, input_dim, input_atoms, input_height, input_width]
+        - [batch, 1, input_channels, input_height, input_width]
     """
+    if self.cfg.DATA_FORMAT == 'NHWC':
+      inputs = tf.transpose(inputs, [0, 3, 1, 2])
+    elif self.cfg.DATA_FORMAT == 'NCHW':
+      pass
+    else:
+      raise ValueError('Wrong data format!')
+
     self.output = tf.expand_dims(inputs, 1)
     return self.output
