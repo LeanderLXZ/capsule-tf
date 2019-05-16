@@ -59,17 +59,15 @@ class Capsule(ModelBase):
     inputs_shape_new = [batch_size, input_dim, 1, input_atoms, 1]
     inputs = tf.reshape(inputs, shape=inputs_shape_new)
     inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
-    # inputs shape: (batch_size, input_dim, output_dim, vec_dim_i, 1)
+    # inputs shape: (batch_size, input_dim, output_dim, input_atoms, 1)
 
     # Initializing weights
     weights = tf.tile(weights, [batch_size, 1, 1, 1, 1])
-    if self.share_weights:
-      weights = tf.tile(weights, [1, input_dim, 1, 1, 1])
     # weights shape:
-    # (batch_size, input_dim, output_dim, output_atoms, vec_dim_i)
+    # (batch_size, input_dim, output_dim, output_atoms, input_atoms)
 
     # Calculating u_hat
-    # ( , , , self.output_atoms, vec_dim_i) x ( , , , vec_dim_i, 1)
+    # ( , , , self.output_atoms, input_atoms) x ( , , , vec_dim_i, 1)
     # -> ( , , , output_atoms, 1) -> squeeze -> ( , , , output_atoms)
     u_hat = tf.matmul(weights, inputs)
     # u_hat shape: (batch_size, input_dim, output_dim, output_atoms, 1)
@@ -120,7 +118,7 @@ class Capsule(ModelBase):
         # routing processes.
         votes = _sum_and_activate(u_hat_stop, c_ij)
 
-        # Updating: b_ij <- b_ij + vj x u_ij
+        # Updating: b_ij <- b_ij + v_j x u_ij
         votes_reshaped = tf.reshape(
             votes, shape=[-1, 1, self.output_dim, 1, self.output_atoms])
         votes_reshaped = tf.tile(votes_reshaped, [1, input_dim, 1, 1, 1])
@@ -173,6 +171,8 @@ class Capsule(ModelBase):
           biases_trainable=False,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
+      if self.share_weights:
+        weights = tf.tile(weights, [1, input_dim, 1, 1, 1])
 
       self.output = self._dynamic_routing(
           inputs=inputs,
@@ -255,7 +255,7 @@ class ConvSlimCapsule(ModelBase):
       #     if self.use_bias else None
 
       weights, biases = self._get_variables(
-          use_bias=True,
+          use_bias=self.use_bias,
           weights_shape=[self.kernel_size, self.kernel_size,
                          input_channels, self.output_dim * self.output_atoms],
           biases_shape=[self.output_dim * self.output_atoms],
@@ -276,8 +276,7 @@ class ConvSlimCapsule(ModelBase):
         caps = tf.nn.bias_add(caps, biases, data_format=self.cfg.DATA_FORMAT)
 
       if self.conv_act_fn is not None:
-        act_fn_conv = self._get_act_fn(self.conv_act_fn)
-        caps = act_fn_conv(caps)
+        caps = self._get_act_fn(self.conv_act_fn)(caps)
 
       if self.cfg.DATA_FORMAT == 'NHWC':
         # caps shape:

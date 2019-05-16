@@ -127,15 +127,6 @@ class ModelBase(object):
     return weights, biases
 
   @staticmethod
-  def _get_strides_list(stride, data_format):
-    if data_format == 'NCHW':
-      return [1, 1, stride, stride]
-    elif data_format == 'NHWC':
-      return [1, stride, stride, 1]
-    else:
-      raise ValueError('Wrong data format!')
-
-  @staticmethod
   def _get_act_fn(fn_name):
     """
     Helper to get activation function from name.
@@ -154,6 +145,24 @@ class ModelBase(object):
       return None
     else:
       raise ValueError('Wrong activation function name!')
+
+  @staticmethod
+  def _get_strides_list(stride, data_format):
+    if data_format == 'NCHW':
+      return [1, 1, stride, stride]
+    elif data_format == 'NHWC':
+      return [1, stride, stride, 1]
+    else:
+      raise ValueError('Wrong data format!')
+
+  @staticmethod
+  def _get_num_channels(inputs, data_format):
+    if data_format == 'NHWC':
+      return inputs.get_shape().as_list()[3]
+    elif data_format == 'NCHW':
+      return inputs.get_shape().as_list()[1]
+    else:
+      raise ValueError('Wrong data format!')
 
 
 class Dense(ModelBase):
@@ -295,10 +304,15 @@ class Conv(ModelBase):
       # biases_initializer = tf.constant_initializer(0.1) \
       #     if self.use_bias else None
 
+      weights_shape = [
+        self.kernel_size,
+        self.kernel_size,
+        self._get_num_channels(inputs, self.cfg.DATA_FORMAT),
+        self.n_kernel
+      ]
       weights, biases = self._get_variables(
           use_bias=self.use_bias,
-          weights_shape=[self.kernel_size, self.kernel_size,
-                         inputs.get_shape().as_list()[1], self.n_kernel],
+          weights_shape=weights_shape,
           biases_shape=[self.n_kernel],
           weights_initializer=weights_initializer,
           biases_initializer=biases_initializer,
@@ -380,10 +394,15 @@ class ConvT(ModelBase):
       # biases_initializer = tf.constant_initializer(0.1) \
       #     if self.use_bias else None
 
+      weights_shape = [
+        self.kernel_size,
+        self.kernel_size,
+        self.n_kernel,
+        self._get_num_channels(inputs, self.cfg.DATA_FORMAT)
+      ]
       weights, biases = self._get_variables(
           use_bias=self.use_bias,
-          weights_shape=[self.kernel_size, self.kernel_size,
-                         self.n_kernel, inputs.get_shape().as_list()[1]],
+          weights_shape=weights_shape,
           biases_shape=[self.n_kernel],
           weights_initializer=weights_initializer,
           biases_initializer=biases_initializer,
