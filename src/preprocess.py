@@ -50,7 +50,7 @@ class DataPreProcess(object):
     self.preprocessed_path = None
     self.source_data_path = None
     self.show_img = show_img
-    self.data_type = np.float16
+    self.data_type = np.float64
 
     # Use encode transfer learning
     if tl_encode:
@@ -489,7 +489,7 @@ class DataPreProcess(object):
     self._one_hot_encoding()
 
     # Shuffle data set
-#     self._shuffle()
+    # self._shuffle()
 
     # Generate multi-objects test images
     if self.cfg.NUM_MULTI_OBJECT:

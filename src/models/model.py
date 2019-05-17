@@ -46,9 +46,9 @@ class Model(object):
     return _inputs, _labels, _input_imgs, _is_training
 
   def _optimizer(self,
-                 global_step=None,
                  opt_name='adam',
-                 n_train_samples=None):
+                 n_train_samples=None,
+                 global_step=None):
     """Optimizer."""
     # Learning rate with exponential decay
     if self.cfg.LR_DECAY:
@@ -308,9 +308,9 @@ class ModelDistribute(Model):
       global_step = tf.placeholder(tf.int16, name='global_step')
 
       # Optimizer
-      optimizer = self._optimizer(global_step=global_step,
-                                  opt_name=self.cfg.OPTIMIZER,
-                                  n_train_samples=n_train_samples)
+      optimizer = self._optimizer(opt_name=self.cfg.OPTIMIZER,
+                                  n_train_samples=n_train_samples,
+                                  global_step=global_step)
 
       # Split data for each tower
       x_splits_tower = tf.split(

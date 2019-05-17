@@ -283,10 +283,14 @@ class Conv(ModelBase):
     with tf.variable_scope('conv_{}'.format(self.idx)):
       # Resize image
       if self.resize is not None:
-        inputs_trans = tf.transpose(inputs, [0, 2, 3, 1])
-        inputs_resized = tf.image.resize_nearest_neighbor(
-            inputs_trans, (self.resize, self.resize))
-        inputs = tf.transpose(inputs_resized, [0, 3, 1, 2])
+        if self.cfg.DATA_FORMAT == 'NCHW':
+          inputs = tf.transpose(inputs, [0, 2, 3, 1])
+          inputs = tf.image.resize_nearest_neighbor(
+              inputs, (self.resize, self.resize))
+          inputs = tf.transpose(inputs, [0, 3, 1, 2])
+        else:
+          inputs = tf.image.resize_nearest_neighbor(
+              inputs, (self.resize, self.resize))
 
       # With atrous
       if not self.atrous and self.stride > 1:
@@ -298,7 +302,7 @@ class Conv(ModelBase):
         self.padding = 'VALID'
 
       weights_initializer = tf.contrib.layers.xavier_initializer()
-      biases_initializer = tf.zeros_initializer() if self.use_bias else None
+      biases_initializer = tf.zeros_initializer()
       # weights_initializer = tf.truncated_normal_initializer(
       #     stddev=0.1, dtype=tf.float32)
       # biases_initializer = tf.constant_initializer(0.1) \

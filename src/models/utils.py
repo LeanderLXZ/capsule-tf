@@ -172,7 +172,7 @@ def load_data_tl(file_path,
   return np.concatenate(batches, axis=0)
 
 
-def get_vec_length(vec, epsilon):
+def get_vec_length(vec, epsilon=1e-9):
   """Get the length of a vector."""
   # vec shape: (batch_size, num_caps, vec_dim)
   vec_length = tf.reduce_sum(tf.square(vec), axis=2, keep_dims=True) + epsilon

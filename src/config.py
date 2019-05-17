@@ -75,7 +75,7 @@ __C.TEST_SIZE = 0.2
 # Rate of train-validation split
 __C.VALID_SIZE = 0.1
 
-# Resize images
+# Resize inputs
 __C.RESIZE_INPUTS = False
 # Input size
 __C.INPUT_SIZE = (28, 28)

@@ -29,11 +29,9 @@ def margin_loss(logits,
     loss: margin loss.
     preds: predicted tensor.
   """
-  preds = utils.get_vec_length(logits, 1e-9)
-  max_square_plus = tf.square(tf.maximum(
-      0., m_plus - preds))
-  max_square_minus = tf.square(tf.maximum(
-      0., preds - m_minus))
+  preds = utils.get_vec_length(logits)
+  max_square_plus = tf.square(tf.maximum(0., m_plus - preds))
+  max_square_minus = tf.square(tf.maximum(0., preds - m_minus))
   # max_square_plus & max_plus shape: (batch_size, num_caps)
 
   loss_c = tf.multiply(labels, max_square_plus) + \
@@ -102,16 +100,16 @@ def reconstruction_loss(logits,
       reconstructed = logits
     loss = tf.reduce_mean(
         tf.square(reconstructed - inputs_flatten))
-    rec_imgs = reconstructed
+    rec_imgs = logits
 
   elif rec_loss_type == 'ce':
     if decoder_type == 'fc':
-      inputs_ = tf.contrib.layers.flatten(input_imgs)
+      inputs_imgs_ = tf.contrib.layers.flatten(input_imgs)
     else:
-      inputs_ = input_imgs
+      inputs_imgs_ = input_imgs
     loss = tf.reduce_mean(
         tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=inputs_, logits=logits))
+            labels=inputs_imgs_, logits=logits))
     rec_imgs = tf.nn.sigmoid(logits)
 
   else:

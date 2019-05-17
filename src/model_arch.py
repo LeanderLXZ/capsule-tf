@@ -27,7 +27,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      if cfg.DATA_FORMAT == 'NHWC':
+      if cfg.DATA_FORMAT == 'NCHW':
         model.add(NHWC2NCHW())
 
       model.add(Conv(
@@ -55,9 +55,12 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           output_dim=num_class,
           output_atoms=16,
           num_routing=3,
+          routing_method='v1',
           act_fn='squash',
+          use_bias=False,
           share_weights=False,
-          idx=1
+          add_grads_stop=True,
+          idx=0
       ))
       model.add_name('clf_logits')
 
@@ -111,7 +114,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      if cfg.DATA_FORMAT == 'NHWC':
+      if cfg.DATA_FORMAT == 'NCHW':
         model.add(NHWC2NCHW())
       model.add(Conv(
           cfg,

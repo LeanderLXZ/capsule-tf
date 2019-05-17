@@ -5,11 +5,12 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def squash(x):
+def squash(x, epsilon=1e-9):
   """Applies norm non-linearity (squash) to a capsule layer.
 
   Args:
     x: A tensor with shape: (batch_size, num_caps, vec_dim[, 1]).
+    epsilon: Add epsilon(a very small number) to zeros
 
   Returns:
     A tensor with the same shape as input tensor but squashed in 'vec_dim'
@@ -20,7 +21,7 @@ def squash(x):
   else:
     vec_squared_norm = tf.reduce_sum(tf.square(x), -1, keep_dims=True)
   scalar_factor = tf.div(vec_squared_norm, 1 + vec_squared_norm)
-  unit_vec = tf.div(x, tf.sqrt(vec_squared_norm + 1e-9))
+  unit_vec = tf.div(x, tf.sqrt(vec_squared_norm + epsilon))
   return tf.multiply(scalar_factor, unit_vec)
 
 

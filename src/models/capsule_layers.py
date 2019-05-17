@@ -15,8 +15,11 @@ class Capsule(ModelBase):
                output_dim=None,
                output_atoms=None,
                num_routing=None,
+               routing_method='v1',
                act_fn='squash',
+               use_bias=False,
                share_weights=False,
+               add_grads_stop=True,
                idx=0):
     """Initialize capsule layer.
 
@@ -25,8 +28,11 @@ class Capsule(ModelBase):
       output_dim: number of capsules of this layer
       output_atoms: dimensions of vectors of capsules
       num_routing: number of dynamic routing iteration
+      routing_method: version of dynamic routing implement
       act_fn: string, activation function
+      use_bias: add biases
       share_weights: if share weights matrix
+      add_grads_stop: add gradients stops
       idx: index of layer
     """
     super(Capsule, self).__init__()
@@ -34,8 +40,11 @@ class Capsule(ModelBase):
     self.output_dim = output_dim
     self.output_atoms = output_atoms
     self.num_routing = num_routing
+    self.routing_method = routing_method
     self.act_fn = act_fn
+    self.use_bias = use_bias
     self.share_weights = share_weights
+    self.add_grads_stop = add_grads_stop
     self.idx = idx
 
   def _dynamic_routing(self, inputs, weights, biases, act_fn):
@@ -53,88 +62,142 @@ class Capsule(ModelBase):
         - shape: [batch_size, output_dim, output_atoms]
     """
     batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
-    votes = None
 
-    # Reshape input tensor
-    inputs_shape_new = [batch_size, input_dim, 1, input_atoms, 1]
-    inputs = tf.reshape(inputs, shape=inputs_shape_new)
-    inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
     # inputs shape: (batch_size, input_dim, output_dim, input_atoms, 1)
+    inputs = tf.reshape(
+        inputs, shape=[batch_size, input_dim, 1, input_atoms, 1])
+    inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
 
-    # Initializing weights
+    # weights: (batch_size, input_dim, output_dim, output_atoms, input_atoms)
     weights = tf.tile(weights, [batch_size, 1, 1, 1, 1])
-    # weights shape:
-    # (batch_size, input_dim, output_dim, output_atoms, input_atoms)
 
-    # Calculating u_hat
-    # ( , , , self.output_atoms, input_atoms) x ( , , , vec_dim_i, 1)
-    # -> ( , , , output_atoms, 1) -> squeeze -> ( , , , output_atoms)
+    # ( , , , output_atoms, input_atoms) x ( , , , vec_dim_i, 1)
+    # u_hat: (batch_size, input_dim, output_dim, output_atoms, 1)
     u_hat = tf.matmul(weights, inputs)
-    # u_hat shape: (batch_size, input_dim, output_dim, output_atoms, 1)
 
     # u_hat_stop
     # Do not transfer the gradient of u_hat_stop during back-propagation
-    u_hat_stop = tf.stop_gradient(u_hat)
+    if self.add_grads_stop:
+      u_hat_stop = tf.stop_gradient(u_hat)
+    else:
+      u_hat_stop = u_hat
 
-    # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
-    b_ij = biases
+    # b_ij: (batch_size, input_dim, output_dim, 1, 1)
+    b_ij = tf.fill(
+        tf.stack([batch_size, input_dim, self.output_dim, 1, 1]), 0.0)
 
+    use_bias = self.use_bias
     def _sum_and_activate(_u_hat, _c_ij):
       """Get sum of vectors and apply activation function."""
-      # Calculating s_j(using u_hat)
       # Using u_hat but not u_hat_stop in order to transfer gradients.
+      # _s_j: (batch_size, output_dim, output_atoms, 1)
       _s_j = tf.reduce_sum(tf.multiply(_u_hat, _c_ij), axis=1)
-      # _s_j shape: (batch_size, output_dim, output_atoms, 1)
 
-      # Applying Squashing
-      _votes = act_fn(_s_j)
-      # _votes shape: (batch_size, output_dim, output_atoms, 1)
+      if use_bias:
+        _s_j = _s_j + tf.expand_dims(biases, -1)
 
-      _votes = tf.identity(_votes)
+      # shape: (batch_size, output_dim, output_atoms, 1)
+      return act_fn(_s_j)
 
-      return _votes
-
+    votes = None
     for iter_route in range(self.num_routing):
 
       # Calculate c_ij for every epoch
+      # c_ij: (batch_size, input_dim, output_dim, 1, 1)
       c_ij = tf.nn.softmax(b_ij, dim=2)
-
-      # c_ij shape: (batch_size, input_dim, output_dim, 1, 1)
 
       # Applying back-propagation at last epoch.
       if iter_route == self.num_routing - 1:
-        # c_ij_stop
         # Do not transfer the gradient of c_ij_stop during back-propagation.
-        c_ij_stop = tf.stop_gradient(c_ij)
+        if self.add_grads_stop:
+          c_ij_stop = tf.stop_gradient(c_ij)
+        else:
+          c_ij_stop = c_ij
 
-        # Calculating s_j(using u_hat) and Applying activation function.
         # Using u_hat but not u_hat_stop in order to transfer gradients.
         votes = _sum_and_activate(u_hat, c_ij_stop)
 
       # Do not apply back-propagation if it is not last epoch.
       else:
-        # Calculating s_j(using u_hat_stop) and Applying activation function.
         # Using u_hat_stop so that the gradient will not be transferred to
         # routing processes.
         votes = _sum_and_activate(u_hat_stop, c_ij)
 
-        # Updating: b_ij <- b_ij + v_j x u_ij
+        # votes_reshaped: (batch_size, input_dim, output_dim, 1, output_atoms)
         votes_reshaped = tf.reshape(
             votes, shape=[-1, 1, self.output_dim, 1, self.output_atoms])
         votes_reshaped = tf.tile(votes_reshaped, [1, input_dim, 1, 1, 1])
-        # votes_reshaped shape:
-        # (batch_size, input_dim, output_dim, 1, output_atoms)
 
         # ( , , , 1, output_atoms) x ( , , , output_atoms, 1)
-        # -> squeeze -> (batch_size, input_dim, output_dim, 1, 1)
-        delta_b_ij = tf.matmul(votes_reshaped, u_hat_stop)
         # delta_b_ij shape: (batch_size, input_dim, output_dim, 1)
+        delta_b_ij = tf.matmul(votes_reshaped, u_hat_stop)
 
-        b_ij = tf.add(b_ij, delta_b_ij)
+        # Updating: b_ij <- b_ij + v_j x u_ij
         # b_ij shape: (batch_size, input_dim, output_dim, 1, 1)
+        b_ij = tf.add(b_ij, delta_b_ij)
 
-    # votes shape: (batch_size, output_dim, output_atoms)
+    # votes: (batch_size, output_dim, output_atoms)
     votes = tf.squeeze(votes, axis=-1)
+    return votes
+
+  def _dynamic_routing_v2(self, inputs, weights, biases, act_fn):
+    """Dynamic routing.
+
+    Args:
+      inputs: input tensor
+        - shape: [batch_size, input_dim, input_atoms]
+      weights: weights matrix
+      biases: b_ij
+      act_fn: activation function
+
+    Returns:
+      output tensor
+        - shape: [batch_size, output_dim, output_atoms]
+    """
+    num_routing = self.num_routing
+    output_dim = self.output_dim
+    output_atoms = self.output_atoms
+    use_bias = self.use_bias
+    batch_size, input_dim, input_atoms = inputs.get_shape().as_list()
+
+    inputs = tf.reshape(
+        inputs, shape=[batch_size, input_dim, 1, input_atoms, 1])
+    inputs = tf.tile(inputs, [1, 1, self.output_dim, 1, 1])
+
+    weights = tf.tile(weights, [batch_size, 1, 1, 1, 1])
+    u_hat = tf.matmul(weights, inputs)
+
+    b_ij = tf.fill(
+        tf.stack([batch_size, input_dim, self.output_dim, 1, 1]), 0.0)
+
+    def _sum_and_activate(_c_ij):
+      """Get sum of vectors and apply activation function."""
+      _s_j = tf.reduce_sum(tf.multiply(u_hat, _c_ij), axis=1)
+      if use_bias:
+        _s_j = _s_j + tf.expand_dims(biases, -1)
+      return act_fn(_s_j)
+
+    def _body(i_route_, b_ij_, activations_):
+      """Routing while loop."""
+      c_ij_ = tf.nn.softmax(b_ij_, dim=2)
+      votes_ = _sum_and_activate(c_ij_)
+      activations_ = activations_.write(i_route_, votes_)
+      votes_reshaped = tf.reshape(
+          votes_, shape=[-1, 1, output_dim, 1, output_atoms])
+      votes_reshaped = tf.tile(votes_reshaped, [1, input_dim, 1, 1, 1])
+      b_ij_ = tf.add(b_ij_, tf.matmul(votes_reshaped, u_hat))
+      return i_route_ + 1, b_ij_, activations_
+
+    activations = tf.TensorArray(
+        dtype=tf.float32, size=num_routing, clear_after_read=False)
+    i_route = tf.constant(0, dtype=tf.int32)
+    _, logits, activations = tf.while_loop(
+        lambda i_route_, b_ij_, activations_: i_route_ < num_routing,
+        _body,
+        loop_vars=[i_route, b_ij, activations],
+        swap_memory=True)
+
+    votes = tf.squeeze(activations.read(num_routing - 1), axis=-1)
     return votes
 
   def __call__(self, inputs):
@@ -165,16 +228,22 @@ class Capsule(ModelBase):
       weights, biases = self._get_variables(
           use_bias=True,
           weights_shape=weights_shape,
-          biases_shape=[batch_size, input_dim, self.output_dim, 1, 1],
+          biases_shape=[self.output_dim, self.output_atoms],
           weights_initializer=weights_initializer,
           biases_initializer=biases_initializer,
-          biases_trainable=False,
           store_on_cpu=self.cfg.VAR_ON_CPU
       )
       if self.share_weights:
         weights = tf.tile(weights, [1, input_dim, 1, 1, 1])
 
-      self.output = self._dynamic_routing(
+      if self.routing_method == 'v1':
+        dr_algorithm = self._dynamic_routing
+      elif self.routing_method == 'v2':
+        dr_algorithm = self._dynamic_routing_v2
+      else:
+        raise ValueError('Wrong dynamic routing version!')
+
+      self.output = dr_algorithm(
           inputs=inputs,
           weights=weights,
           biases=biases,
@@ -182,6 +251,40 @@ class Capsule(ModelBase):
       )
 
     return self.output
+
+
+class CapsuleB(ModelBase):
+
+  def __init__(self,
+               cfg,
+               output_dim=None,
+               output_atoms=None,
+               num_routing=None,
+               act_fn='squash',
+               use_bias=True,
+               share_weights=False,
+               idx=0):
+    """Initialize capsule layer.
+
+    Args:
+      cfg: configuration
+      output_dim: number of capsules of this layer
+      output_atoms: dimensions of vectors of capsules
+      num_routing: number of dynamic routing iteration
+      act_fn: string, activation function
+      use_bias: add biases
+      share_weights: if share weights matrix
+      idx: index of layer
+    """
+    super(CapsuleB, self).__init__()
+    self.cfg = cfg
+    self.output_dim = output_dim
+    self.output_atoms = output_atoms
+    self.num_routing = num_routing
+    self.act_fn = act_fn
+    self.use_bias = use_bias
+    self.share_weights = share_weights
+    self.idx = idx
 
 
 class ConvSlimCapsule(ModelBase):
@@ -248,7 +351,7 @@ class ConvSlimCapsule(ModelBase):
 
       # Convolution layer
       weights_initializer = tf.contrib.layers.xavier_initializer()
-      biases_initializer = tf.zeros_initializer() if self.use_bias else None
+      biases_initializer = tf.zeros_initializer()
       # weights_initializer = tf.truncated_normal_initializer(
       #     stddev=0.1, dtype=tf.float32)
       # biases_initializer = tf.constant_initializer(0.1) \
@@ -293,12 +396,12 @@ class ConvSlimCapsule(ModelBase):
 
       # Reshape and generating a capsule layer
       # reshaped caps shape:
-      # (batch_size, output_dim * output_height * output_width, output_atoms, 1)
-      caps = tf.reshape(caps, [batch_size, -1, self.output_atoms, 1])
+      # (batch_size, output_dim * output_height * output_width, output_atoms)
+      caps = tf.reshape(caps, [batch_size, -1, self.output_atoms])
 
       # Applying activation function
       act_fn_caps = self._get_act_fn(self.caps_act_fn)
-      self.output = tf.squeeze(act_fn_caps(caps), axis=-1)
+      self.output = act_fn_caps(caps)
       # caps_activated shape:
       # (batch_size, output_dim * output_height * output_width,
       #  output_atoms, output_atoms)
@@ -315,6 +418,7 @@ class CapsuleV2(ModelBase):
                num_routing=3,
                leaky=False,
                act_fn='squash_v2',
+               use_bias=False,
                idx=0):
     """Single convolution layer
 
@@ -325,6 +429,7 @@ class CapsuleV2(ModelBase):
       num_routing: scalar, Number of routing iterations.
       leaky: boolean, if set use leaky routing.
       act_fn: string, activation function
+      use_bias: add biases
       idx: int, index of layer
     """
     super(CapsuleV2, self).__init__()
@@ -334,6 +439,7 @@ class CapsuleV2(ModelBase):
     self.num_routing = num_routing
     self.leaky = leaky
     self.act_fn = act_fn
+    self.use_bias = use_bias
     self.idx = idx
 
   @staticmethod
@@ -391,29 +497,49 @@ class CapsuleV2(ModelBase):
     Returns:
       The activation tensor of the output layer after num_routing iterations.
     """
+    # votes shape: [batch, input_dim, output_dim, output_atoms]
+
     votes_t_shape = [3, 0, 1, 2]
     for i in range(num_dims - 4):
       votes_t_shape += [i + 4]  # CONV: votes_t_shape - [3, 0, 1, 2, 4, 5]
     r_t_shape = [1, 2, 3, 0]
     for i in range(num_dims - 4):
-      r_t_shape += [i + 4]  # CONV: votes_t_shape - [1, 2, 3, 0, 4, 5]
+      r_t_shape += [i + 4]  # CONV: r_t_shape - [1, 2, 3, 0, 4, 5]
+
+    # votes_trans: [output_atoms, batch, input_dim, output_dim]
     votes_trans = tf.transpose(votes, votes_t_shape)
+
+    use_bias = self.use_bias
 
     def _body(i_route, logits_, activations_):
       """Routing while loop."""
-      # route: [batch, input_dim, output_dim, ...]
+      # logits_: [batch, input_dim, output_dim]
       if leaky:
         route = self._leaky_routing(logits_, output_dim)
       else:
         route = tf.nn.softmax(logits_, dim=2)
 
+      # route: [batch, input_dim, output_dim]
+      # pre_act_unrolled: [output_atoms, batch, input_dim, output_dim]
       pre_act_unrolled = route * votes_trans
+
+      # pre_act_trans: [batch, input_dim, output_dim, output_atoms]
       pre_act_trans = tf.transpose(pre_act_unrolled, r_t_shape)
-      pre_act = tf.reduce_sum(pre_act_trans, axis=1) + biases
+
+      # pre_act: [batch, output_dim, output_atoms]
+      if use_bias:
+        pre_act = tf.reduce_sum(pre_act_trans, axis=1) + biases
+      else:
+        pre_act = tf.reduce_sum(pre_act_trans, axis=1)
+
+      # activated: [batch, output_dim, output_atoms]
       activated = act_fn(pre_act)
       activations_ = activations_.write(i_route, activated)
 
+      # act_3d: [batch, 1, output_dim, output_atoms]
       act_3d = tf.expand_dims(activated, 1)
+
+      # act_tiled: [batch, input_dim, output_dim, output_atoms]
       tile_shape = list(np.ones(num_dims, dtype=np.int32))
       tile_shape[1] = input_dim
       act_tiled = tf.tile(act_3d, tile_shape)
@@ -426,6 +552,7 @@ class CapsuleV2(ModelBase):
 
     activations = tf.TensorArray(
         dtype=tf.float32, size=num_routing, clear_after_read=False)
+
     logits = tf.fill(logit_shape, 0.0)
     i = tf.constant(0, dtype=tf.int32)
     _, logits, activations = tf.while_loop(
@@ -459,7 +586,7 @@ class CapsuleV2(ModelBase):
         biases_initializer = tf.constant_initializer(0.1)
 
         weights, biases = self._get_variables(
-            use_bias=True,
+            use_bias=self.use_bias,
             weights_shape=[input_dim, input_atoms,
                            self.output_dim * self.output_atoms],
             biases_shape=[self.output_dim, self.output_atoms],
@@ -472,16 +599,21 @@ class CapsuleV2(ModelBase):
             # Depth-wise matmul: [b, d, c] ** [d, c, o_c] = [b, d, o_c]
             # To do this: tile input, do element-wise multiplication and reduce
             # sum over input_atoms dimension.
+
+            # [batch, input_dim, input_atoms, output_dim *output_atoms]
             input_tiled = tf.tile(
                 tf.expand_dims(inputs, -1),
                 [1, 1, 1, self.output_dim * self.output_atoms])
+
+            # [batch, input_dim, output_dim * output_atoms]
             votes = tf.reduce_sum(input_tiled * weights, axis=2)
+
+            # [batch, input_dim, output_dim, output_atoms]
             votes_reshaped = tf.reshape(
                 votes, [-1, input_dim, self.output_dim, self.output_atoms])
 
         with tf.name_scope('routing'):
-            logit_shape = tf.stack(
-                [batch_size, input_dim, self.output_dim])
+            logit_shape = tf.stack([batch_size, input_dim, self.output_dim])
             self.output = self._dynamic_routing(
                 votes=votes_reshaped,
                 biases=biases,
