@@ -25,15 +25,15 @@ class Capsule(ModelBase):
 
     Args:
       cfg: configuration
-      output_dim: number of capsules of this layer
-      output_atoms: dimensions of vectors of capsules
-      num_routing: number of dynamic routing iteration
-      routing_method: version of dynamic routing implement
-      act_fn: string, activation function
-      use_bias: add biases
-      share_weights: if share weights matrix
-      add_grads_stop: add gradients stops
-      idx: index of layer
+      output_dim: number of capsules of this layer.
+      output_atoms: dimensions of vectors of capsules.
+      num_routing: number of dynamic routing iteration.
+      routing_method: version of dynamic routing implement.
+      act_fn: string, activation function.
+      use_bias: bool, if add biases.
+      share_weights: if share weights matrix.
+      add_grads_stop: add gradients stops.
+      idx: int, index of layer.
     """
     super(Capsule, self).__init__()
     self.cfg = cfg
@@ -252,40 +252,6 @@ class Capsule(ModelBase):
     return self.output
 
 
-class CapsuleB(ModelBase):
-
-  def __init__(self,
-               cfg,
-               output_dim=None,
-               output_atoms=None,
-               num_routing=None,
-               act_fn='squash',
-               use_bias=True,
-               share_weights=False,
-               idx=0):
-    """Initialize capsule layer.
-
-    Args:
-      cfg: configuration
-      output_dim: number of capsules of this layer
-      output_atoms: dimensions of vectors of capsules
-      num_routing: number of dynamic routing iteration
-      act_fn: string, activation function
-      use_bias: add biases
-      share_weights: if share weights matrix
-      idx: index of layer
-    """
-    super(CapsuleB, self).__init__()
-    self.cfg = cfg
-    self.output_dim = output_dim
-    self.output_atoms = output_atoms
-    self.num_routing = num_routing
-    self.act_fn = act_fn
-    self.use_bias = use_bias
-    self.share_weights = share_weights
-    self.idx = idx
-
-
 class ConvSlimCapsule(ModelBase):
 
   def __init__(self,
@@ -303,15 +269,15 @@ class ConvSlimCapsule(ModelBase):
 
     Args:
       cfg: configuration
-      output_dim: number of capsules of this layer
-      output_atoms: dimensions of vectors of capsules
-      kernel_size: size of convolution kernel
-      stride: stride of convolution kernel
-      padding: padding type of convolution kernel
-      conv_act_fn: activation function of convolution
-      caps_act_fn: activation function of capsule
-      use_bias: add biases
-      idx: index of layer
+      output_dim: number of capsules of this layer.
+      output_atoms: dimensions of vectors of capsules.
+      kernel_size: size of convolution kernel.
+      stride: stride of convolution kernel.
+      padding: padding type of convolution kernel.
+      conv_act_fn: activation function of convolution.
+      caps_act_fn: activation function of capsule.
+      use_bias: bool, if add biases.
+      idx: int, index of layer.
     """
     super(ConvSlimCapsule, self).__init__()
     self.cfg = cfg
@@ -427,9 +393,9 @@ class CapsuleV2(ModelBase):
       output_atoms: scalar, number of units in each capsule of output layer.
       num_routing: scalar, Number of routing iterations.
       leaky: boolean, if set use leaky routing.
-      act_fn: string, activation function
-      use_bias: add biases
-      idx: int, index of layer
+      act_fn: string, activation function.
+      use_bias: bool, if add biases.
+      idx: int, index of layer.
     """
     super(CapsuleV2, self).__init__()
     self.cfg = cfg
@@ -489,7 +455,7 @@ class CapsuleV2(ModelBase):
         capsule it is 4, for convolution 6.
       input_dim: scalar, number of capsules in the input layer.
       output_dim: scalar, number of capsules in the output layer.
-      act_fn: activation function
+      act_fn: activation function.
       num_routing: scalar, Number of routing iterations.
       leaky: boolean, if set use leaky routing.
 
@@ -640,6 +606,7 @@ class ConvSlimCapsuleV2(CapsuleV2):
                padding='SAME',
                conv_act_fn=None,
                caps_act_fn='squash_v2',
+               use_bias=True,
                idx=0):
     """Builds a slim convolutional capsule layer.
 
@@ -667,9 +634,10 @@ class ConvSlimCapsuleV2(CapsuleV2):
       kernel_size: scalar, convolutional kernels are [kernel_size, kernel_size].
       stride: scalar, stride of the convolutional kernel.
       padding: 'SAME' or 'VALID', padding mechanism for convolutional kernels.
-      conv_act_fn: activation function of convolution
-      caps_act_fn: activation function of capsule
-      idx: int, index of layer
+      conv_act_fn: activation function of convolution.
+      caps_act_fn: activation function of capsule.
+      use_bias: bool, if add biases.
+      idx: int, index of layer.
     """
     super(ConvSlimCapsuleV2, self).__init__(
         cfg=cfg,
@@ -678,6 +646,7 @@ class ConvSlimCapsuleV2(CapsuleV2):
         num_routing=num_routing,
         leaky=leaky,
         act_fn=caps_act_fn,
+        use_bias=use_bias,
         idx=idx
     )
     self.kernel_size = kernel_size
@@ -771,7 +740,7 @@ class ConvSlimCapsuleV2(CapsuleV2):
       biases_initializer = tf.constant_initializer(0.1)
 
       weights, biases = self._get_variables(
-          use_bias=True,
+          use_bias=self.use_bias,
           weights_shape=[self.kernel_size, self.kernel_size,
                          input_atoms, self.output_dim * self.output_atoms],
           biases_shape=[self.output_dim, self.output_atoms, 1, 1],
@@ -786,10 +755,11 @@ class ConvSlimCapsuleV2(CapsuleV2):
         logit_shape = tf.stack([
           batch_size, input_dim, self.output_dim, votes_shape[2], votes_shape[3]
         ])
-        biases_tiled = tf.tile(biases, [1, 1, votes_shape[2], votes_shape[3]])
+        if self.use_bias:
+          biases = tf.tile(biases, [1, 1, votes_shape[2], votes_shape[3]])
         self.output = self._dynamic_routing(
             votes=votes,
-            biases=biases_tiled,
+            biases=biases,
             logit_shape=logit_shape,
             num_dims=6,
             input_dim=input_dim,
@@ -852,14 +822,14 @@ class Capsule5Dto3D(ModelBase):
 
 class Capsule4Dto5D(ModelBase):
 
-  def __init__(self, cfg):
+  def __init__(self, data_format):
     """Convert a conv2d output tensor to 5D tensor.
 
     Args:
-      cfg: configuration
+      data_format: data format of images, 'NCHW' or 'NHWC'
     """
     super(Capsule4Dto5D, self).__init__()
-    self.cfg = cfg
+    self.data_format = data_format
 
   def __call__(self, inputs):
     """Convert a conv2d output tensor to 5D tensor.
@@ -874,9 +844,9 @@ class Capsule4Dto5D(ModelBase):
         - [batch, input_dim, input_atoms, input_height, input_width]
         - [batch, 1, input_channels, input_height, input_width]
     """
-    if self.cfg.DATA_FORMAT == 'NHWC':
+    if self.data_format == 'NHWC':
       inputs = tf.transpose(inputs, [0, 3, 1, 2])
-    elif self.cfg.DATA_FORMAT == 'NCHW':
+    elif self.data_format == 'NCHW':
       pass
     else:
       raise ValueError('Wrong data format!')
