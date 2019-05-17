@@ -39,55 +39,55 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           act_fn='relu',
           idx=0
       ))
-#       model.add(ConvSlimCapsule(
-#           cfg,
-#           output_dim=32,
-#           output_atoms=8,
-#           kernel_size=9,
-#           stride=2,
-#           padding='VALID',
-#           conv_act_fn='relu',
-#           caps_act_fn='squash',
-#           idx=0
-#       ))
-#       model.add(Capsule(
-#           cfg,
-#           output_dim=num_class,
-#           output_atoms=16,
-#           num_routing=3,
-#           routing_method='v1',
-#           act_fn='squash',
-#           use_bias=False,
-#           share_weights=False,
-#           add_grads_stop=True,
-#           idx=1
-#       ))
-      model.add(Capsule4Dto5D(cfg.DATA_FORMAT))
-      model.add(ConvSlimCapsuleV2(
+      model.add(ConvSlimCapsule(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
           stride=2,
           padding='VALID',
           conv_act_fn='relu',
-          caps_act_fn='squash_v2',
-          use_bias=True,
+          caps_act_fn='squash',
           idx=0
       ))
-      model.add(Capsule5Dto3D())
-      model.add(CapsuleV2(
+      model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
-          act_fn='squash_v2',
+          routing_method='v1',
+          act_fn='squash',
           use_bias=True,
+          share_weights=False,
+          add_grads_stop=True,
           idx=1
       ))
+#       model.add(Capsule4Dto5D(cfg.DATA_FORMAT))
+#       model.add(ConvSlimCapsuleV2(
+#           cfg,
+#           output_dim=32,
+#           output_atoms=8,
+#           num_routing=1,
+#           leaky=False,
+#           kernel_size=9,
+#           stride=2,
+#           padding='VALID',
+#           conv_act_fn='relu',
+#           caps_act_fn='squash_v2',
+#           use_bias=True,
+#           idx=0
+#       ))
+#       model.add(Capsule5Dto3D())
+#       model.add(CapsuleV2(
+#           cfg,
+#           output_dim=10,
+#           output_atoms=16,
+#           num_routing=3,
+#           leaky=False,
+#           act_fn='squash_v2',
+#           use_bias=True,
+#           idx=1
+#       ))
       model.add_name('clf_logits')
 
       clf_loss, clf_preds = model.get_loss(
@@ -164,7 +164,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
       ), weights=w_caps_0, biases=b_caps_0, trainable=True)
       model.add(Capsule(
           cfg,
-          output_dim=num_class,
+          output_dim=10,
           output_atoms=16,
           num_routing=3,
           routing_method='v1',

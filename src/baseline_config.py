@@ -136,12 +136,6 @@ __C.MARGIN_LOSS_PARAMS = {'m_plus': 0.9,
 __C.MARGIN_LOSS_H_PARAMS = {'margin': 0.4,
                             'down_weight': 0.5}
 
-# Add epsilon(a very small number) to zeros
-__C.EPSILON = 1e-9
-
-# stddev of tf.truncated_normal_initializer()
-__C.WEIGHTS_STDDEV = 0.01
-
 # -------------------------------------------
 # Optimizer and learning rate decay
 

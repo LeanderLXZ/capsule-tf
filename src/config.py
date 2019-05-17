@@ -136,12 +136,6 @@ __C.MARGIN_LOSS_PARAMS = {'m_plus': 0.9,
 __C.MARGIN_LOSS_H_PARAMS = {'margin': 0.4,
                             'down_weight': 0.5}
 
-# Add epsilon(a very small number) to zeros
-__C.EPSILON = 1e-9
-
-# stddev of tf.truncated_normal_initializer()
-__C.WEIGHTS_STDDEV = 0.01
-
 # -------------------------------------------
 # Optimizer and learning rate decay
 
@@ -177,7 +171,7 @@ __C.DECODER_TYPE = 'fc'
 __C.REC_LOSS = 'mse'
 
 # Scaling for reconstruction loss
-__C.REC_LOSS_SCALE = 0.0005  # 0.0005*32*32=0.512  # 0.0005*784=0.392
+__C.REC_LOSS_SCALE = 0.392  # 0.0005*32*32=0.512  # 0.0005*784=0.392
 
 # -------------------------------------------
 # Transfer Learning
