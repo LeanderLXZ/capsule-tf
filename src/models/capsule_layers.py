@@ -82,7 +82,6 @@ class Capsule(ModelBase):
     else:
       u_hat_stop = u_hat
 
-    # b_ij: (batch_size, input_dim, output_dim, 1, 1)
     b_ij = tf.fill(
         tf.stack([batch_size, input_dim, self.output_dim, 1, 1]), 0.0)
 
@@ -226,7 +225,7 @@ class Capsule(ModelBase):
         weights_shape = \
             [1, input_dim, self.output_dim, self.output_atoms, input_atoms]
       weights, biases = self._get_variables(
-          use_bias=True,
+          use_bias=self.use_bias,
           weights_shape=weights_shape,
           biases_shape=[self.output_dim, self.output_atoms],
           weights_initializer=weights_initializer,

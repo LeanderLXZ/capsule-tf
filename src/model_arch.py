@@ -60,7 +60,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           use_bias=False,
           share_weights=False,
           add_grads_stop=True,
-          idx=0
+          idx=1
       ))
       model.add_name('clf_logits')
 
@@ -138,11 +138,14 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
       ), weights=w_caps_0, biases=b_caps_0, trainable=True)
       model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
+          routing_method='v1',
           act_fn='squash',
+          use_bias=False,
           share_weights=False,
+          add_grads_stop=True,
           idx=1
       ), weights=w_caps_1, biases=b_caps_1, trainable=True)
       model.add(Capsule(
@@ -152,7 +155,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           num_routing=3,
           act_fn='squash',
           share_weights=False,
-          idx=1
+          idx=2
       ))
       model.add_name('clf_logits')
 
