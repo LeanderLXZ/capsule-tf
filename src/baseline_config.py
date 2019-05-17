@@ -44,7 +44,7 @@ __C.LEARNING_RATE = 0.001
 
 # Learning rate with exponential decay
 # Use learning rate decay
-__C.LR_DECAY = True
+__C.LR_DECAY = False
 # Decay steps
 __C.LR_DECAY_STEPS = 2000
 # Exponential decay rate
@@ -55,6 +55,11 @@ __C.EPOCHS = 20
 
 # Batch size
 __C.BATCH_SIZE = 512
+
+# Data format
+# 'NCHW': (batch, channel, height, width)
+# 'NHWC': (batch, height, width, channel)
+__C.DATA_FORMAT = 'NHWC'
 
 
 # ===========================================
@@ -70,7 +75,7 @@ __C.TEST_SIZE = 0.2
 # Rate of train-validation split
 __C.VALID_SIZE = 0.1
 
-# Resize images
+# Resize inputs
 __C.RESIZE_INPUTS = False
 # Input size
 __C.INPUT_SIZE = (28, 28)
@@ -120,7 +125,7 @@ __C.REPEAT = False
 # Classification loss
 # 'margin': margin loss
 # 'margin_h': margin loss in Hinton's paper
-__C.CLF_LOSS = 'margin_h'
+__C.CLF_LOSS = 'margin'
 
 # Parameters of margin loss
 # default: {'m_plus': 0.9, 'm_minus': 0.1, 'lambda_': 0.5}
@@ -169,7 +174,7 @@ __C.DECODER_TYPE = 'fc'
 # Reconstruction loss
 # 'mse': Mean Square Error
 # 'ce' : sigmoid_cross_entropy_with_logits
-__C.REC_LOSS = 'ce'
+__C.REC_LOSS = 'mse'
 
 # Scaling for reconstruction loss
 __C.REC_LOSS_SCALE = 0.392  # 0.0005*32*32=0.512  # 0.0005*784=0.392

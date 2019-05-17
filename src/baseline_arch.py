@@ -27,7 +27,9 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      model.add(NHWC2NCHW())
+      if cfg.DATA_FORMAT == 'NCHW':
+        model.add(NHWC2NCHW())
+
       model.add(Conv(
           cfg,
           kernel_size=9,
@@ -37,50 +39,29 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           act_fn='relu',
           idx=0
       ))
-      model.add(Capsule4Dto5D())
       model.add(ConvSlimCapsule(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
           stride=2,
           padding='VALID',
-          conv_act_fn=None,
+          conv_act_fn='relu',
           caps_act_fn='squash',
           idx=0
       ))
-      model.add(Capsule5Dto3D())
       model.add(Capsule(
           cfg,
           output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
+          routing_method='v1',
           act_fn='squash',
+          use_bias=False,
+          share_weights=False,
+          add_grads_stop=True,
           idx=1
       ))
-      # model.add(ConvSlimCapsuleV2(
-      #     cfg,
-      #     output_dim=32,
-      #     output_atoms=8,
-      #     kernel_size=9,
-      #     stride=1,
-      #     padding='VALID',
-      #     conv_act_fn='relu',
-      #     caps_act_fn='squash_v2',
-      #     idx=0
-      # ))
-      # model.add(CapsuleV2(
-      #     cfg,
-      #     output_dim=10,
-      #     output_atoms=16,
-      #     num_routing=3,
-      #     act_fn='squash_v2',
-      #     share_weights=False,
-      #     idx=1
-      # ))
       model.add_name('clf_logits')
 
       clf_loss, clf_preds = model.get_loss(
@@ -110,7 +91,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
       rec_loss_params = {
         'decoder_type': 'fc',
-        'rec_loss_type': 'ce'
+        'rec_loss_type': 'mse'
       }
       rec_loss, rec_imgs = model.get_loss(
           reconstruction_loss, input_imgs, **rec_loss_params)
@@ -133,7 +114,8 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
     with tf.variable_scope('classifier'):
 
-      model.add(NHWC2NCHW())
+      if cfg.DATA_FORMAT == 'NCHW':
+        model.add(NHWC2NCHW())
       model.add(Conv(
           cfg,
           kernel_size=9,
@@ -143,28 +125,27 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           act_fn='relu',
           idx=0
       ), weights=w_conv_0, biases=b_conv_0, trainable=True)
-      model.add(Capsule4Dto5D())
       model.add(ConvSlimCapsule(
           cfg,
           output_dim=32,
           output_atoms=8,
-          num_routing=1,
-          leaky=False,
           kernel_size=9,
           stride=2,
           padding='VALID',
-          conv_act_fn=None,
+          conv_act_fn='relu',
           caps_act_fn='squash',
           idx=0
       ), weights=w_caps_0, biases=b_caps_0, trainable=True)
-      model.add(Capsule5Dto3D())
       model.add(Capsule(
           cfg,
-          output_dim=10,
+          output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
+          routing_method='v1',
           act_fn='squash',
+          use_bias=False,
+          share_weights=False,
+          add_grads_stop=True,
           idx=1
       ), weights=w_caps_1, biases=b_caps_1, trainable=True)
       model.add(Capsule(
@@ -172,8 +153,8 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          leaky=False,
           act_fn='squash',
+          share_weights=False,
           idx=2
       ))
       model.add_name('clf_logits')
@@ -205,7 +186,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
       rec_loss_params = {
         'decoder_type': 'fc',
-        'rec_loss_type': 'ce'
+        'rec_loss_type': 'mse'
       }
       rec_loss, rec_imgs = model.get_loss(
           reconstruction_loss, input_imgs, **rec_loss_params)

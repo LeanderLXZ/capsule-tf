@@ -91,7 +91,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
       rec_loss_params = {
         'decoder_type': 'fc',
-        'rec_loss_type': 'ce'
+        'rec_loss_type': 'mse'
       }
       rec_loss, rec_imgs = model.get_loss(
           reconstruction_loss, input_imgs, **rec_loss_params)
@@ -186,7 +186,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
 
       rec_loss_params = {
         'decoder_type': 'fc',
-        'rec_loss_type': 'ce'
+        'rec_loss_type': 'mse'
       }
       rec_loss, rec_imgs = model.get_loss(
           reconstruction_loss, input_imgs, **rec_loss_params)
