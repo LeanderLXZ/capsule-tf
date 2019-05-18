@@ -250,7 +250,10 @@ class DataPreProcess(object):
     utils.thin_line()
     print('Splitting train/valid set...')
 
-    train_stop = int(len(self.x) * self.cfg.VALID_SIZE)
+    if self.cfg.VALID_SIZE > 1:
+      train_stop = len(self.x) - self.cfg.VALID_SIZE
+    else:
+      train_stop = len(self.x) - int(len(self.x) * self.cfg.VALID_SIZE)
     if self.cfg.DPP_TEST_AS_VALID:
       self.x_train = self.x
       self.y_train = self.y
