@@ -67,7 +67,7 @@ __C.DATA_FORMAT = 'NHWC'
 # ===========================================
 
 # Setting test set as validation when preprocessing data
-__C.DPP_TEST_AS_VALID = True
+__C.DPP_TEST_AS_VALID = False
 
 # Rate of train-test split
 __C.TEST_SIZE = 0.2
