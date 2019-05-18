@@ -62,6 +62,6 @@ if __name__ == '__main__':
     print('Running normal version.')
     mode_ = 'normal'
 
-  cfg_list_ = [cfg_1, cfg_2, cfg_3, cfg_4, cfg_5, cfg_6, cfg_7, cfg_8]
+  cfg_list_ = [cfg_0, cfg_1, cfg_2, cfg_3, cfg_4, cfg_5, cfg_6, cfg_7, cfg_8]
 
   pipeline(cfg_list_, model_arch, mode_)

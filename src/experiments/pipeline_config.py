@@ -68,13 +68,13 @@ __C.DATA_FORMAT = 'NHWC'
 # ===========================================
 
 # Setting test set as validation when preprocessing data
-__C.DPP_TEST_AS_VALID = True
+__C.DPP_TEST_AS_VALID = False
 
 # Rate of train-test split
 __C.TEST_SIZE = 0.2
 
 # Rate of train-validation split
-__C.VALID_SIZE = 0.1
+__C.VALID_SIZE = 5000
 
 # Resize inputs
 __C.RESIZE_INPUTS = False
@@ -341,6 +341,7 @@ __C.CAPS_USE_BIAS = False
 __C.CAPS_SHARE_WEIGHTS = False
 __C.CAPS_GRADS_STOP = True
 
+cfg_0 = copy(__C)
 
 cfg_1_ = copy(__C)
 cfg_1_.DATA_FORMAT = 'NCHW'
