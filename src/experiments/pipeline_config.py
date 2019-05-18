@@ -332,37 +332,52 @@ __C.TASK_NUMBER = 16
 # If None, not use
 __C.MOVING_AVERAGE_DECAY = 0.9999
 
-# ===========================================
-
-# get config by: from baseline_config import basel_config
-config = __C
-
 
 # ===========================================
 # #                 Pipeline                #
 # ===========================================
 
+__C.CAPS_USE_BIAS = False
+__C.CAPS_SHARE_WEIGHTS = False
+__C.CAPS_GRADS_STOP = True
+
+
 cfg_1_ = copy(__C)
 cfg_1_.DATA_FORMAT = 'NCHW'
-cfg_1_.VERSION = _auto_version(__C)
+cfg_1_.VERSION = 'nchw'
 cfg_1 = cfg_1_
 
 cfg_2_ = copy(__C)
 cfg_2_.LR_DECAY = True
-cfg_2_.VERSION = _auto_version(__C)
+cfg_2_.VERSION = 'lr_decay'
 cfg_2 = cfg_2_
 
 cfg_3_ = copy(__C)
 cfg_3_.CLF_LOSS = 'margin_h'
-cfg_3_.VERSION = _auto_version(__C)
+cfg_3_.VERSION = 'margin_h'
 cfg_3 = cfg_3_
 
 cfg_4_ = copy(__C)
 cfg_4_.REC_LOSS_SCALE = 0.0005
-cfg_4_.VERSION = _auto_version(__C)
+cfg_4_.VERSION = 'scale_00005'
 cfg_4 = cfg_4_
 
 cfg_5_ = copy(__C)
-cfg_5_.REC_LOSS_SCALE = 0.25
-cfg_5_.VERSION = _auto_version(__C)
+cfg_5_.CAPS_USE_BIAS = True
+cfg_5_.VERSION = 'caps_use_bias'
 cfg_5 = cfg_5_
+
+cfg_6_ = copy(__C)
+cfg_6_.CAPS_SHARE_WEIGHTS = True
+cfg_6_.VERSION = 'caps_share_weights'
+cfg_6 = cfg_6_
+
+cfg_7_ = copy(__C)
+cfg_7_.CAPS_GRADS_STOP = False
+cfg_7_.VERSION = 'caps_add_grads_stop'
+cfg_7 = cfg_7_
+
+cfg_8_ = copy(__C)
+cfg_8_.REC_LOSS_SCALE = 0.25
+cfg_8_.VERSION = 'scale_025'
+cfg_8 = cfg_8_
