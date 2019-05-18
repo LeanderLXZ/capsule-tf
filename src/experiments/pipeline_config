@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from copy import copy
 from easydict import EasyDict
 
 
@@ -37,7 +38,7 @@ __C.FT_DATABASE_NAME = 'mnist_100'
 
 # Training version
 # Set None to auto generate version
-__C.VERSION = 'baseline'
+__C.VERSION = None
 
 # Learning rate
 __C.LEARNING_RATE = 0.001
@@ -335,3 +336,33 @@ __C.MOVING_AVERAGE_DECAY = 0.9999
 
 # get config by: from baseline_config import basel_config
 config = __C
+
+
+# ===========================================
+# #                 Pipeline                #
+# ===========================================
+
+cfg_1_ = copy(__C)
+cfg_1_.DATA_FORMAT = 'NCHW'
+cfg_1_.VERSION = _auto_version(__C)
+cfg_1 = cfg_1_
+
+cfg_2_ = copy(__C)
+cfg_2_.LR_DECAY = True
+cfg_2_.VERSION = _auto_version(__C)
+cfg_2 = cfg_2_
+
+cfg_3_ = copy(__C)
+cfg_3_.CLF_LOSS = 'margin_h'
+cfg_3_.VERSION = _auto_version(__C)
+cfg_3 = cfg_3_
+
+cfg_4_ = copy(__C)
+cfg_4_.REC_LOSS_SCALE = 0.0005
+cfg_4_.VERSION = _auto_version(__C)
+cfg_4 = cfg_4_
+
+cfg_5_ = copy(__C)
+cfg_5_.REC_LOSS_SCALE = 0.25
+cfg_5_.VERSION = _auto_version(__C)
+cfg_5 = cfg_5_

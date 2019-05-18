@@ -39,27 +39,30 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           act_fn='relu',
           idx=0
       ))
-      model.add(ConvSlimCapsule(
+      model.add(Capsule4Dto5D(cfg.DATA_FORMAT))
+      model.add(ConvSlimCapsuleV2(
           cfg,
           output_dim=32,
           output_atoms=8,
+          num_routing=1,
+          leaky=False,
           kernel_size=9,
           stride=2,
           padding='VALID',
           conv_act_fn='relu',
-          caps_act_fn='squash',
+          caps_act_fn='squash_v2',
+          use_bias=True,
           idx=0
       ))
-      model.add(Capsule(
+      model.add(Capsule5Dto3D())
+      model.add(CapsuleV2(
           cfg,
           output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          routing_method='v1',
-          act_fn='squash',
-          use_bias=False,
-          share_weights=False,
-          add_grads_stop=True,
+          leaky=False,
+          act_fn='squash_v2',
+          use_bias=True,
           idx=1
       ))
       model.add_name('clf_logits')
@@ -124,37 +127,41 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           padding='VALID',
           act_fn='relu',
           idx=0
-      ), weights=w_conv_0, biases=b_conv_0, trainable=True)
-      model.add(ConvSlimCapsule(
+      ), weights=w_conv_0, biases=b_conv_0)
+      model.add(Capsule4Dto5D(cfg.DATA_FORMAT))
+      model.add(ConvSlimCapsuleV2(
           cfg,
           output_dim=32,
           output_atoms=8,
+          num_routing=1,
+          leaky=False,
           kernel_size=9,
           stride=2,
           padding='VALID',
           conv_act_fn='relu',
-          caps_act_fn='squash',
+          caps_act_fn='squash_v2',
+          use_bias=True,
           idx=0
-      ), weights=w_caps_0, biases=b_caps_0, trainable=True)
-      model.add(Capsule(
+      ), weights=w_caps_0, biases=b_caps_0)
+      model.add(Capsule5Dto3D())
+      model.add(CapsuleV2(
           cfg,
-          output_dim=num_class,
+          output_dim=10,
           output_atoms=16,
           num_routing=3,
-          routing_method='v1',
-          act_fn='squash',
-          use_bias=False,
-          share_weights=False,
-          add_grads_stop=True,
+          leaky=False,
+          act_fn='squash_v2',
+          use_bias=True,
           idx=1
-      ), weights=w_caps_1, biases=b_caps_1, trainable=True)
-      model.add(Capsule(
+      ), weights=w_caps_1, biases=b_caps_1)
+      model.add(CapsuleV2(
           cfg,
           output_dim=num_class,
           output_atoms=16,
           num_routing=3,
-          act_fn='squash',
-          share_weights=False,
+          leaky=False,
+          act_fn='squash_v2',
+          use_bias=True,
           idx=2
       ))
       model.add_name('clf_logits')

@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 
 from models import utils
 from config import config as cfg
-from baseline_config import config as basel_cfg
+from experiments.baseline_config import config as basel_cfg
 from models.get_transfer_learning_codes import GetBottleneckFeatures
 
 from keras.preprocessing.image import ImageDataGenerator
@@ -50,7 +50,7 @@ class DataPreProcess(object):
     self.preprocessed_path = None
     self.source_data_path = None
     self.show_img = show_img
-    self.data_type = np.float64
+    self.data_type = np.float16
 
     # Use encode transfer learning
     if tl_encode:

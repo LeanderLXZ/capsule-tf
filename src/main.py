@@ -17,8 +17,8 @@ from models.model import Model, ModelDistribute, ModelMultiTasks
 from model_arch import model_arch
 from test import Test, TestMultiObjects
 
-from baseline_config import config as basel_cfg
-from baseline_arch import model_arch as basel_arch
+from experiments.baseline_config import config as basel_cfg
+from experiments.baseline_arch import model_arch as basel_arch
 
 
 class Main(object):
