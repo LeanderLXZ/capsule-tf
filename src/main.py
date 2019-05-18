@@ -19,6 +19,8 @@ from test import Test, TestMultiObjects
 
 from experiments.baseline_config import config as basel_cfg
 from experiments.baseline_arch import model_arch as basel_arch
+from experiments.hinton_config import config as hinton_cfg
+from experiments.hinton_arch import model_arch as hinton_arch
 
 
 class Main(object):
@@ -652,6 +654,8 @@ if __name__ == '__main__':
                       help="Run multi-tasks version.")
   parser.add_argument('-b', '--baseline', action="store_true",
                       help="Use baseline architecture and configurations.")
+  parser.add_argument('-ht', '--hinton', action="store_true",
+                      help="Use architecture and configurations of Hinton.")
   parser.add_argument('-ft', '--fine_tune', action="store_true",
                       help="Use baseline architecture and configurations.")
   args = parser.parse_args()
@@ -679,6 +683,11 @@ if __name__ == '__main__':
     utils.thick_line()
     arch_ = basel_arch
     config_ = basel_cfg
+  elif args.hinton:
+    print('Running Hinton\'s model.')
+    utils.thick_line()
+    arch_ = hinton_arch
+    config_ = hinton_cfg
   else:
     arch_ = model_arch
     config_ = config

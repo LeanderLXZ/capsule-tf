@@ -37,7 +37,7 @@ __C.FT_DATABASE_NAME = 'mnist_100'
 
 # Training version
 # Set None to auto generate version
-__C.VERSION = 'baseline'
+__C.VERSION = None
 
 # Learning rate
 __C.LEARNING_RATE = 0.001
