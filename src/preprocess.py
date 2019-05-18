@@ -492,7 +492,7 @@ class DataPreProcess(object):
     self._one_hot_encoding()
 
     # Shuffle data set
-    self._shuffle()
+    # self._shuffle()
 
     # Generate multi-objects test images
     if self.cfg.NUM_MULTI_OBJECT:

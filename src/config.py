@@ -73,7 +73,7 @@ __C.DPP_TEST_AS_VALID = False
 __C.TEST_SIZE = 0.2
 
 # Rate of train-validation split
-__C.VALID_SIZE = 0.1
+__C.VALID_SIZE = 5000
 
 # Resize inputs
 __C.RESIZE_INPUTS = False
