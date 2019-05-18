@@ -355,7 +355,7 @@ def save_test_log(file_path, loss_test, acc_test,
                   clf_loss_test, rec_loss_test, with_rec,
                   top_n_list, acc_top_n_list):
   """Save losses and accuracies of testing."""
-  file_path = os.path.join(file_path, 'test_log.csv')
+  file_path = os.path.join(file_path, 'test_log.txt')
   thin_line()
   print('Saving {}...'.format(file_path))
 
