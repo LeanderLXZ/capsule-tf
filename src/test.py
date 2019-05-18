@@ -384,12 +384,12 @@ class Test(object):
     if self.cfg.TEST_WITH_REC:
       print('Test Classifier Loss: {:.4f}\n'.format(clf_loss_test),
             'Test Reconstruction Loss: {:.4f}'.format(rec_loss_test))
-    print('Test Accuracy: {:.2f}%'.format(acc_test * 100))
+    print('Test Accuracy: {:.4f}%'.format(acc_test * 100))
     if self.cfg.TOP_N_LIST is not None:
       utils.thin_line()
       for i, top_n in enumerate(self.cfg.TOP_N_LIST):
-        print('Top_{} Test Accuracy: {:.4f} \n'.format(
-            top_n, acc_top_n_list[i]))
+        print('Top_{} Test Accuracy: {:.4f}% \n'.format(
+            top_n, acc_top_n_list[i] * 100))
 
     # Save test log
     if self.during_training and (self.epoch_train != 'end'):
