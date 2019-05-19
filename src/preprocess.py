@@ -37,6 +37,7 @@ class DataPreProcess(object):
                seed=None,
                data_base_name=None,
                tl_encode=False,
+               data_type=np.float16,
                show_img=False):
     """
     Preprocess data and save as pickle files.
@@ -50,7 +51,7 @@ class DataPreProcess(object):
     self.preprocessed_path = None
     self.source_data_path = None
     self.show_img = show_img
-    self.data_type = np.float64
+    self.data_type = data_type
 
     # Use encode transfer learning
     if tl_encode:
@@ -58,7 +59,7 @@ class DataPreProcess(object):
     else:
       self.tl_encode = False
 
-    if self.data_base_name == 'mnist':
+    if 'mnist' in self.data_base_name:
       self.input_size = (28, 28)
       self.img_mode = 'L'
     elif self.data_base_name == 'cifar10':
@@ -80,14 +81,12 @@ class DataPreProcess(object):
     utils.thin_line()
     print('Loading {} data set...'.format(self.data_base_name))
 
-    self.x = utils.load_data_from_pkl(
-        join(self.source_data_path, 'train_images.p')).astype(self.data_type)
-    self.y = utils.load_data_from_pkl(
-        join(self.source_data_path, 'train_labels.p'))
-    self.x_test = utils.load_data_from_pkl(
-        join(self.source_data_path, 'test_images.p')).astype(self.data_type)
-    self.y_test = utils.load_data_from_pkl(
-        join(self.source_data_path, 'test_labels.p'))
+    self.x = utils.load_pkls(
+        self.source_data_path, 'train_images').astype(self.data_type)
+    self.y = utils.load_pkls(self.source_data_path, 'train_labels')
+    self.x_test = utils.load_pkls(
+        self.source_data_path, 'test_images').astype(self.data_type)
+    self.y_test = utils.load_pkls(self.source_data_path, 'test_labels')
 
     # Data augment
     if self.cfg.USE_DATA_AUG:

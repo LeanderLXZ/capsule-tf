@@ -3,8 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from os.path import join
-import utils
-
+from models import utils
 
 SOURCE_DATA_PATH = '../data/source_data'
 

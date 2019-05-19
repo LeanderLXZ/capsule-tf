@@ -6,7 +6,7 @@ from copy import copy
 from easydict import EasyDict
 
 
-# Auto-generate version
+# Auto-pipeline version
 def _auto_version(c):
   _version = c['DATABASE_NAME']
   if c['WITH_REC']:
@@ -37,7 +37,7 @@ __C.DATABASE_MODE = None
 __C.FT_DATABASE_NAME = 'mnist_100'
 
 # Training version
-# Set None to auto generate version
+# Set None to auto pipeline version
 __C.VERSION = None
 
 # Learning rate
@@ -104,7 +104,7 @@ __C.DATA_AUG_KEEP_SOURCE = True
 __C.MAX_IMAGE_NUM = 10000
 
 # Preprocessing images of superpositions of multi-objects
-# If None, do not generate multi-objects images.
+# If None, do not pipeline multi-objects images.
 # If n, one image includes a superposition of n objects, the positions of
 # those objects are random.
 __C.NUM_MULTI_OBJECT = None
@@ -114,6 +114,24 @@ __C.NUM_MULTI_IMG = 10000
 __C.OVERLAP = False
 # If Repeat, repetitive labels will appear in a image.
 __C.REPEAT = False
+
+# -------------------------------------------
+# MNIST_N
+
+# Number of samples in each class
+__C.MN_NUM_IN_CLASS = 5000
+
+# Range of new numbers generated
+__C.MN_NUM_RANGE = (10, 99)
+
+# Image size of merged images
+__C.MN_IMAGE_SIZE = (28, 28)
+
+# Rotate range of each single number in final number images
+__C.MN_ROTATE_RANGE = None  # (-10, 10)
+
+# Database name of MNIST_N
+__C.MN_DATABASE_NAME = 'mnist_100'
 
 
 # ===========================================
