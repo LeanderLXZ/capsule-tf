@@ -657,7 +657,7 @@ if __name__ == '__main__':
   parser.add_argument('-ht', '--hinton', action="store_true",
                       help="Use architecture and configurations of Hinton.")
   parser.add_argument('-ft', '--fine_tune', action="store_true",
-                      help="Use baseline architecture and configurations.")
+                      help="Fine-tuning.")
   args = parser.parse_args()
 
   if args.mtask:

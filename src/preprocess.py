@@ -612,60 +612,49 @@ if __name__ == '__main__':
                       help='Get transfer learning bottleneck features.')
   parser.add_argument('-si', '--show_img', action='store_true',
                       help='Get transfer learning bottleneck features.')
+  parser.add_argument('-ft', '--fine_tune', action="store_true",
+                      help="Fine-tuning.")
+
   args = parser.parse_args()
 
   show_img_flag = True if args.show_img else False
   mul_imgs_flag = True if cfg.NUM_MULTI_OBJECT else False
 
+  cfg_ = cfg
   if args.baseline:
     utils.thick_line()
     print('Running baseline model.')
-    if args.tl1:
-      DataPreProcess(basel_cfg,
-                     global_seed,
-                     basel_cfg.DATABASE_NAME,
-                     tl_encode=True,
-                     show_img=show_img_flag).pipeline()
-    elif args.tl2:
-      save_bottleneck_features(cfg,
-                               data_base_name=basel_cfg.DATABASE_NAME,
-                               mul_imgs=mul_imgs_flag)
-    else:
-      DataPreProcess(basel_cfg,
-                     global_seed,
-                     basel_cfg.DATABASE_NAME,
-                     show_img=show_img_flag).pipeline()
+    cfg_ = basel_cfg
+    database_name_ = basel_cfg.DATABASE_NAME
   elif args.mnist:
     utils.thick_line()
     print('Preprocess the MNIST database.')
-    if args.tl1:
-      DataPreProcess(cfg,
-                     global_seed,
-                     'mnist',
-                     tl_encode=True,
-                     show_img=show_img_flag).pipeline()
-    elif args.tl2:
-      save_bottleneck_features(cfg, 'mnist', mul_imgs=mul_imgs_flag)
-    else:
-      DataPreProcess(cfg, global_seed, 'mnist').pipeline()
+    database_name_ = 'mnist'
   elif args.cifar:
     utils.thick_line()
     print('Preprocess the CIFAR-10 database.')
-    if args.tl1:
-      DataPreProcess(cfg,
-                     global_seed,
-                     'cifar10',
-                     tl_encode=True,
-                     show_img=show_img_flag).pipeline()
-    elif args.tl2:
-      save_bottleneck_features(cfg, 'cifar10', mul_imgs=mul_imgs_flag)
-    else:
-      DataPreProcess(cfg,
-                     global_seed,
-                     'cifar10',
-                     show_img=show_img_flag).pipeline()
+    database_name_ = 'cifar10'
   else:
-    DataPreProcess(cfg,
-                   global_seed,
-                   'mnist',
+    utils.thick_line()
+    print('Preprocess the MNIST database.')
+    database_name_ = 'mnist'
+
+  if args.fine_tune:
+    database_name_ = cfg_.FT_DATABASE_NAME
+
+  if args.tl1:
+    DataPreProcess(config=cfg_,
+                   seed=global_seed,
+                   data_base_name=database_name_,
+                   tl_encode=True,
+                   show_img=show_img_flag).pipeline()
+
+  elif args.tl2:
+    save_bottleneck_features(cfg,
+                             data_base_name=database_name_,
+                             mul_imgs=mul_imgs_flag)
+  else:
+    DataPreProcess(config=cfg_,
+                   seed=global_seed,
+                   data_base_name=database_name_,
                    show_img=show_img_flag).pipeline()
