@@ -2,6 +2,7 @@
 .ropeproject/
 .ipynb_checkpoints/
 __pycache__/
+archived_logs/
 src/__pycache__/
 src/models/__pycache__/
 src/notebooks/__pycache__/
