@@ -20,7 +20,7 @@ def pipeline(cfg_list, architecture, mode):
     start_time = time.time()
 
     utils.thick_line()
-    print('Training task: {}/{}'.format(i, len(cfg_list)))
+    print('Training task: {}/{}'.format(i+1, len(cfg_list)))
     model = Main(cfg, architecture, mode)
     model.train()
 
