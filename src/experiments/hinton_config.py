@@ -76,12 +76,12 @@ __C.TEST_SIZE = 0.2
 __C.VALID_SIZE = 0.1
 
 # Resize inputs
-__C.RESIZE_INPUTS = False
+__C.RESIZE_INPUTS = True
 # Input size
 __C.INPUT_SIZE = (28, 28)
 
 # Resize images
-__C.RESIZE_IMAGES = False
+__C.RESIZE_IMAGES = True
 # Image size
 __C.IMAGE_SIZE = (28, 28)
 
@@ -124,7 +124,7 @@ __C.MN_NUM_IN_CLASS = 5000
 __C.MN_NUM_RANGE = (10, 99)
 
 # Image size of merged images
-__C.MN_IMAGE_SIZE = (28, 28)
+__C.MN_IMAGE_SIZE = (56, 56)
 
 # Rotate range of each single number in final number images
 __C.MN_ROTATE_RANGE = None  # (-10, 10)

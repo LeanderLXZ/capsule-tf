@@ -99,10 +99,11 @@ class GenerateMNISTN(object):
 
   def _merge(self, images, img_size=(56, 56)):
     """_merge images."""
-    target = Image.new('L', img_size)
+    img_size_m = (56, 56)
+    target = Image.new('L', img_size_m)
     left = 0
     for image in images:
-      h, w = self._cal_margin(image, images, *img_size)
+      h, w = self._cal_margin(image, images, *img_size_m)
       x = random.randint(0, w)
       y = random.randint(0, h)
       target.paste(
@@ -110,6 +111,12 @@ class GenerateMNISTN(object):
           box=((x + left), y, (
               x + left + image.shape[1]), (y + image.shape[0])))
       left += x + image.shape[1]
+
+    if img_size != img_size_m:
+      target = img_resize(target,
+                          img_size,
+                          img_mode='L',
+                          resize_filter=Image.ANTIALIAS)
     return target
 
   @staticmethod
