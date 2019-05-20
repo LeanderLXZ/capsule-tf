@@ -112,8 +112,8 @@ class GenerateMNISTN(object):
               x + left + image.shape[1]), (y + image.shape[0])))
       left += x + image.shape[1]
 
-    if img_size != img_size_m:
-      target = img_resize(target,
+    if tuple(img_size) != img_size_m:
+      target = img_resize([target],
                           img_size,
                           img_mode='L',
                           resize_filter=Image.ANTIALIAS)
@@ -161,8 +161,8 @@ class GenerateMNISTN(object):
             img1_sheared = self._img_shear(img1)
             img2_sheared = self._img_shear(img2)
 
-            images_list = [img1_sheared, img2_sheared]
-            merged_img = np.array(self._merge(images_list, img_size=img_size))
+            imgs_for_merge = [img1_sheared, img2_sheared]
+            merged_img = np.array(self._merge(imgs_for_merge, img_size=img_size))
 
             images_list.append(merged_img)
             labels_list.append(i * 10 + j)
@@ -262,7 +262,7 @@ class GenerateMNISTN(object):
 
 if __name__ == '__main__':
 
-  source_data_path_ = '../data/source_data/mnist',
+  source_data_path_ = '../data/source_data/mnist'
   save_path_ = '../data/source_data/'
 
   parser = argparse.ArgumentParser(description='Testing the model.')
