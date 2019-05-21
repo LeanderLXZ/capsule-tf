@@ -78,8 +78,8 @@ class ModelBase(object):
     return self.output.get_shape().as_list()
 
   def assign_variables(self, 
-                       weights, 
-                       biases,
+                       weights=None, 
+                       biases=None,
                        w_trainable=True,
                        b_trainable=True):
     self.assign_vars = True

@@ -100,7 +100,7 @@ class Main(object):
           self.cfg.DPP_DATA_PATH, self.cfg.FT_DATABASE_NAME)
       self.restore_checkpoint_path = join(
           self.cfg.CHECKPOINT_PATH, self.cfg.VERSION)
-      self.cfg.VERSION = self.cfg.VERSION + '_fine-tune'
+      self.cfg.VERSION += '_ft'
 
     train_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.cfg.VERSION)
     summary_path_ = join(self.cfg.SUMMARY_PATH, self.cfg.VERSION)
@@ -136,7 +136,6 @@ class Main(object):
     """Load preprocessed data."""
     utils.thick_line()
     print('Loading data...')
-    utils.thin_line()
 
     x_train = utils.load_pkls(
         self.preprocessed_path, 'x_train', tl=self.tl_encode)
@@ -174,6 +173,11 @@ class Main(object):
 
   def _get_restore_vars_dict(self):
     """Load pre-trained variables."""
+    utils.thick_line()
+    print('Loading pre-trained variables from:\n', 
+          self.restore_checkpoint_path)
+    utils.thin_line()
+    
     tf.reset_default_graph()
     loaded_graph = tf.Graph()
 
@@ -193,8 +197,8 @@ class Main(object):
           loaded_graph.get_tensor_by_name('classifier/caps_0/biases:0'))
       restore_vars_dict['w_caps_1'] = sess.run(
           loaded_graph.get_tensor_by_name('classifier/caps_1/weights:0'))
-      restore_vars_dict['b_caps_1'] = sess.run(
-          loaded_graph.get_tensor_by_name('classifier/caps_1/biases:0'))
+#       restore_vars_dict['b_caps_1'] = sess.run(
+#           loaded_graph.get_tensor_by_name('classifier/caps_1/biases:0'))
 
       return restore_vars_dict
 
@@ -697,7 +701,7 @@ if __name__ == '__main__':
 
   if args.task_number:
     config_.TASK_NUMBER = args.task_number
-
+    
   fine_tune_ = True if args.fine_tune else False
 
   Main(config_, arch_, mode=mode_, fine_tune=fine_tune_).train()

@@ -110,7 +110,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
     w_caps_0 = restore_vars_dict['w_caps_0']
     b_caps_0 = restore_vars_dict['b_caps_0']
     w_caps_1 = restore_vars_dict['w_caps_1']
-    b_caps_1 = restore_vars_dict['b_caps_1']
+#     b_caps_1 = restore_vars_dict['b_caps_1']
 
     with tf.variable_scope('classifier'):
 
@@ -147,7 +147,7 @@ def model_arch(cfg, inputs, labels, input_imgs, num_class,
           share_weights=False,
           add_grads_stop=True,
           idx=1
-      ), weights=w_caps_1, biases=b_caps_1)
+      ), weights=w_caps_1)
       model.add(Capsule(
           cfg,
           output_dim=num_class,
