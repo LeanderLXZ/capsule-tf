@@ -123,6 +123,18 @@ __C.MN_ROTATE_RANGE = None  # (-10, 10)
 # Database name of MNIST_N
 __C.MN_DATABASE_NAME = 'mnist_100'
 
+# Preprocessing images of superpositions of multi-objects
+# If None, do not pipeline multi-objects images.
+# If n, one image includes a superposition of n objects, the positions of
+# those objects are random.
+__C.NUM_MULTI_OBJECT = None
+# The number of multi-objects images
+__C.NUM_MULTI_IMG = 10000
+# If overlap, the multi-objects will be overlapped in a image.
+__C.OVERLAP = False
+# If Repeat, repetitive labels will appear in a image.
+__C.REPEAT = False
+
 
 # ===========================================
 # #            Model Architecture           #
@@ -273,6 +285,28 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
 __C.TOP_N_LIST = [2, 5]
+
+# -------------------------------------------
+# Multi-objects detection
+
+# Label for generating reconstruction images
+# 'pred': Use predicted y
+# 'real': Use real labels y
+__C.LABEL_FOR_TEST = 'pred'  # 'real'
+
+# Mode of prediction for multi-objects detection
+# 'top_n': sort vectors, select longest n classes as y
+# 'length_rate': using length rate of the longest vector class as threshold
+__C.MOD_PRED_MODE = 'top_n'  # 'length_rate'
+
+# Max number of prediction y
+__C.MOD_PRED_MAX_NUM = 2
+
+# Threshold for 'length_rate' mode
+__C.MOD_PRED_THRESHOLD = 0.5
+
+# Save test prediction vectors
+__C.SAVE_TEST_PRED = True
 
 
 # ===========================================
