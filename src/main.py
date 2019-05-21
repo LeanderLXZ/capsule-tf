@@ -666,6 +666,8 @@ if __name__ == '__main__':
                       help="Use architecture and configurations of Hinton.")
   parser.add_argument('-ft', '--fine_tune', action="store_true",
                       help="Fine-tuning.")
+  parser.add_argument('-p', '--pipeline', action="store_true",
+                      help="Pipeline of training and fine-tuning.")
   args = parser.parse_args()
 
   if args.mtask:
@@ -708,4 +710,17 @@ if __name__ == '__main__':
 
   fine_tune_ = True if args.fine_tune else False
 
-  Main(config_, arch_, mode=mode_, fine_tune=fine_tune_).train()
+  if args.pipeline:
+    if args.baseline:
+      config_ = basel_cfg
+      config_ft_ = basel_cfg_ft
+    elif args.hinton:
+      config_ = hinton_cfg
+      config_ft_ = hinton_cfg_ft
+    else:
+      config_ = config
+      config_ft_ = config_ft
+    Main(config_, arch_, mode=mode_, fine_tune=False).train()
+    Main(config_ft_, arch_, mode=mode_, fine_tune=True).train()
+  else:
+    Main(config_, arch_, mode=mode_, fine_tune=fine_tune_).train()
