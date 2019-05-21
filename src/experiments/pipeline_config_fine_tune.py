@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from copy import copy
 from easydict import EasyDict
 
 
@@ -14,7 +15,7 @@ def _auto_version(c):
     _version += '_no_rec'
   if c['DPP_TEST_AS_VALID']:
     _version += '_tav'
-  return _version
+  return _version + '_ft'
 
 
 __C = EasyDict()
@@ -27,14 +28,17 @@ __C = EasyDict()
 # Database name
 # 'mnist': MNIST
 # 'cifar10' CIFAR-10
-__C.DATABASE_NAME = 'mnist'
+__C.DATABASE_NAME = 'mnist_100'
 # __C.DATABASE_MODE = 'small_no_pool_56_56'
 # __C.DATABASE_MODE = 'small'
 __C.DATABASE_MODE = None
 
 # Training version
 # Set None to auto pipeline version
-__C.VERSION = None
+__C.VERSION = 'baseline_ft'
+
+# Version of restoring
+__C.RESTORE_VERSION = 'baseline'
 
 # Learning rate
 __C.LEARNING_RATE = 0.001
@@ -70,7 +74,7 @@ __C.DPP_TEST_AS_VALID = False
 __C.TEST_SIZE = 0.2
 
 # Rate of train-validation split
-__C.VALID_SIZE = 5000
+__C.VALID_SIZE = 0.1
 
 # Resize inputs
 __C.RESIZE_INPUTS = True
@@ -99,17 +103,26 @@ __C.DATA_AUG_KEEP_SOURCE = True
 # The max number of images of a class if use data augment
 __C.MAX_IMAGE_NUM = 10000
 
-# Preprocessing images of superpositions of multi-objects
-# If None, do not pipeline multi-objects images.
-# If n, one image includes a superposition of n objects, the positions of
-# those objects are random.
-__C.NUM_MULTI_OBJECT = None
-# The number of multi-objects images
-__C.NUM_MULTI_IMG = 10000
-# If overlap, the multi-objects will be overlapped in a image.
-__C.OVERLAP = False
-# If Repeat, repetitive labels will appear in a image.
-__C.REPEAT = False
+# -------------------------------------------
+# MNIST_N Generation
+
+# Number of samples in each train class
+__C.MN_NUM_IN_CLASS_TRAIN = 5000
+
+# Number of samples in each test class
+__C.MN_NUM_IN_CLASS_TEST = 1000
+
+# Range of new numbers generated
+__C.MN_NUM_RANGE = (10, 99)
+
+# Image size of merged images
+__C.MN_IMAGE_SIZE = (56, 56)
+
+# Rotate range of each single number in final number images
+__C.MN_ROTATE_RANGE = None  # (-10, 10)
+
+# Database name of MNIST_N
+__C.MN_DATABASE_NAME = 'mnist_100'
 
 
 # ===========================================
@@ -262,28 +275,6 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 # If None, do not calculate Top_N.
 __C.TOP_N_LIST = [2, 5]
 
-# -------------------------------------------
-# Multi-objects detection
-
-# Label for generating reconstruction images
-# 'pred': Use predicted y
-# 'real': Use real labels y
-__C.LABEL_FOR_TEST = 'pred'  # 'real'
-
-# Mode of prediction for multi-objects detection
-# 'top_n': sort vectors, select longest n classes as y
-# 'length_rate': using length rate of the longest vector class as threshold
-__C.MOD_PRED_MODE = 'top_n'  # 'length_rate'
-
-# Max number of prediction y
-__C.MOD_PRED_MAX_NUM = 2
-
-# Threshold for 'length_rate' mode
-__C.MOD_PRED_THRESHOLD = 0.5
-
-# Save test prediction vectors
-__C.SAVE_TEST_PRED = True
-
 
 # ===========================================
 # #                  Others                 #
@@ -328,7 +319,53 @@ __C.TASK_NUMBER = 16
 # If None, not use
 __C.MOVING_AVERAGE_DECAY = 0.9999
 
+
+# ===========================================
+# #                 Pipeline                #
 # ===========================================
 
-# get config by: from baseline_config import basel_config
-config = __C
+__C.CAPS_USE_BIAS = False
+__C.CAPS_SHARE_WEIGHTS = False
+__C.CAPS_GRADS_STOP = True
+
+cfg_ft_0 = copy(__C)
+
+cfg_ft_1_ = copy(__C)
+cfg_ft_1_.DATA_FORMAT = 'NCHW'
+cfg_ft_1_.VERSION = 'nchw'
+cfg_ft_1 = cfg_ft_1_
+
+cfg_ft_2_ = copy(__C)
+cfg_ft_2_.LR_DECAY = True
+cfg_ft_2_.VERSION = 'lr_decay'
+cfg_ft_2 = cfg_ft_2_
+
+cfg_ft_3_ = copy(__C)
+cfg_ft_3_.CLF_LOSS = 'margin_h'
+cfg_ft_3_.VERSION = 'margin_h'
+cfg_ft_3 = cfg_ft_3_
+
+cfg_ft_4_ = copy(__C)
+cfg_ft_4_.REC_LOSS_SCALE = 0.0005
+cfg_ft_4_.VERSION = 'scale_00005'
+cfg_ft_4 = cfg_ft_4_
+
+cfg_ft_5_ = copy(__C)
+cfg_ft_5_.CAPS_USE_BIAS = True
+cfg_ft_5_.VERSION = 'caps_use_bias'
+cfg_ft_5 = cfg_ft_5_
+
+cfg_ft_6_ = copy(__C)
+cfg_ft_6_.CAPS_SHARE_WEIGHTS = True
+cfg_ft_6_.VERSION = 'caps_share_weights'
+cfg_ft_6 = cfg_ft_6_
+
+cfg_ft_7_ = copy(__C)
+cfg_ft_7_.CAPS_GRADS_STOP = False
+cfg_ft_7_.VERSION = 'caps_add_grads_stop'
+cfg_ft_7 = cfg_ft_7_
+
+cfg_ft_8_ = copy(__C)
+cfg_ft_8_.REC_LOSS_SCALE = 0.25
+cfg_ft_8_.VERSION = 'scale_025'
+cfg_ft_8 = cfg_ft_8_

@@ -853,7 +853,7 @@ def save_imgs(real_imgs,
       (save_row_size, save_col_size, *img_shape)).astype(np.uint8)
 
   mode = 'RGB'
-  if database_name == 'mnist' or database_name == 'radical':
+  if 'mnist' in database_name:
     if not colorful:
       mode = 'L'
       rec_images_in_square = np.squeeze(rec_images_in_square, 4)

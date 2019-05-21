@@ -14,7 +14,7 @@ def _auto_version(c):
     _version += '_no_rec'
   if c['DPP_TEST_AS_VALID']:
     _version += '_tav'
-  return _version
+  return _version + '_ft'
 
 
 __C = EasyDict()
@@ -27,21 +27,24 @@ __C = EasyDict()
 # Database name
 # 'mnist': MNIST
 # 'cifar10' CIFAR-10
-__C.DATABASE_NAME = 'mnist'
+__C.DATABASE_NAME = 'mnist_100'
 # __C.DATABASE_MODE = 'small_no_pool_56_56'
 # __C.DATABASE_MODE = 'small'
 __C.DATABASE_MODE = None
 
 # Training version
 # Set None to auto pipeline version
-__C.VERSION = None
+__C.VERSION = 'hinton_ft'
+
+# Version of restoring
+__C.RESTORE_VERSION = 'hinton'
 
 # Learning rate
 __C.LEARNING_RATE = 0.001
 
 # Learning rate with exponential decay
 # Use learning rate decay
-__C.LR_DECAY = False
+__C.LR_DECAY = True
 # Decay steps
 __C.LR_DECAY_STEPS = 2000
 # Exponential decay rate
@@ -56,7 +59,7 @@ __C.BATCH_SIZE = 512
 # Data format
 # 'NCHW': (batch, channel, height, width)
 # 'NHWC': (batch, height, width, channel)
-__C.DATA_FORMAT = 'NHWC'
+__C.DATA_FORMAT = 'NCHW'
 
 
 # ===========================================
@@ -70,7 +73,7 @@ __C.DPP_TEST_AS_VALID = False
 __C.TEST_SIZE = 0.2
 
 # Rate of train-validation split
-__C.VALID_SIZE = 5000
+__C.VALID_SIZE = 0.1
 
 # Resize inputs
 __C.RESIZE_INPUTS = True
@@ -99,17 +102,26 @@ __C.DATA_AUG_KEEP_SOURCE = True
 # The max number of images of a class if use data augment
 __C.MAX_IMAGE_NUM = 10000
 
-# Preprocessing images of superpositions of multi-objects
-# If None, do not pipeline multi-objects images.
-# If n, one image includes a superposition of n objects, the positions of
-# those objects are random.
-__C.NUM_MULTI_OBJECT = None
-# The number of multi-objects images
-__C.NUM_MULTI_IMG = 10000
-# If overlap, the multi-objects will be overlapped in a image.
-__C.OVERLAP = False
-# If Repeat, repetitive labels will appear in a image.
-__C.REPEAT = False
+# -------------------------------------------
+# MNIST_N Generation
+
+# Number of samples in each train class
+__C.MN_NUM_IN_CLASS_TRAIN = 5000
+
+# Number of samples in each test class
+__C.MN_NUM_IN_CLASS_TEST = 1000
+
+# Range of new numbers generated
+__C.MN_NUM_RANGE = (10, 99)
+
+# Image size of merged images
+__C.MN_IMAGE_SIZE = (56, 56)
+
+# Rotate range of each single number in final number images
+__C.MN_ROTATE_RANGE = None  # (-10, 10)
+
+# Database name of MNIST_N
+__C.MN_DATABASE_NAME = 'mnist_100'
 
 
 # ===========================================
@@ -122,7 +134,7 @@ __C.REPEAT = False
 # Classification loss
 # 'margin': margin loss
 # 'margin_h': margin loss in Hinton's paper
-__C.CLF_LOSS = 'margin'
+__C.CLF_LOSS = 'margin_h'
 
 # Parameters of margin loss
 # default: {'m_plus': 0.9, 'm_minus': 0.1, 'lambda_': 0.5}
@@ -168,7 +180,7 @@ __C.DECODER_TYPE = 'fc'
 __C.REC_LOSS = 'mse'
 
 # Scaling for reconstruction loss
-__C.REC_LOSS_SCALE = 0.392  # 0.0005*32*32=0.512  # 0.0005*784=0.392
+__C.REC_LOSS_SCALE = 0.0005  # 0.0005*32*32=0.512  # 0.0005*784=0.392
 
 # -------------------------------------------
 # Transfer Learning
@@ -261,28 +273,6 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
 __C.TOP_N_LIST = [2, 5]
-
-# -------------------------------------------
-# Multi-objects detection
-
-# Label for generating reconstruction images
-# 'pred': Use predicted y
-# 'real': Use real labels y
-__C.LABEL_FOR_TEST = 'pred'  # 'real'
-
-# Mode of prediction for multi-objects detection
-# 'top_n': sort vectors, select longest n classes as y
-# 'length_rate': using length rate of the longest vector class as threshold
-__C.MOD_PRED_MODE = 'top_n'  # 'length_rate'
-
-# Max number of prediction y
-__C.MOD_PRED_MAX_NUM = 2
-
-# Threshold for 'length_rate' mode
-__C.MOD_PRED_THRESHOLD = 0.5
-
-# Save test prediction vectors
-__C.SAVE_TEST_PRED = True
 
 
 # ===========================================

@@ -21,7 +21,9 @@ from sklearn.model_selection import train_test_split
 
 from models import utils
 from config import config as cfg
+from config_fine_tune import config as cfg_ft
 from experiments.baseline_config import config as basel_cfg
+from experiments.baseline_config_fine_tune import config as basel_cfg_ft
 from models.get_transfer_learning_codes import GetBottleneckFeatures
 
 from keras.preprocessing.image import ImageDataGenerator
@@ -623,11 +625,11 @@ if __name__ == '__main__':
   show_img_flag = True if args.show_img else False
   mul_imgs_flag = True if cfg.NUM_MULTI_OBJECT else False
 
-  cfg_ = cfg
+  cfg_ = cfg_ft if args.fine_tune else cfg
   if args.baseline:
     utils.thick_line()
     print('Running baseline model.')
-    cfg_ = basel_cfg
+    cfg_ = basel_cfg_ft if args.fine_tune else basel_cfg
     database_name_ = basel_cfg.DATABASE_NAME
   elif args.mnist:
     utils.thick_line()

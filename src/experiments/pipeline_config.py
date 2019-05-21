@@ -33,9 +33,6 @@ __C.DATABASE_NAME = 'mnist'
 # __C.DATABASE_MODE = 'small'
 __C.DATABASE_MODE = None
 
-# Database name for fine-tuning
-__C.FT_DATABASE_NAME = 'mnist_100'
-
 # Training version
 # Set None to auto pipeline version
 __C.VERSION = None
@@ -114,27 +111,6 @@ __C.NUM_MULTI_IMG = 10000
 __C.OVERLAP = False
 # If Repeat, repetitive labels will appear in a image.
 __C.REPEAT = False
-
-# -------------------------------------------
-# MNIST_N
-
-# Number of samples in each train class
-__C.MN_NUM_IN_CLASS_TRAIN = 5000
-
-# Number of samples in each test class
-__C.MN_NUM_IN_CLASS_TEST = 1000
-
-# Range of new numbers generated
-__C.MN_NUM_RANGE = (10, 99)
-
-# Image size of merged images
-__C.MN_IMAGE_SIZE = (56, 56)
-
-# Rotate range of each single number in final number images
-__C.MN_ROTATE_RANGE = None  # (-10, 10)
-
-# Database name of MNIST_N
-__C.MN_DATABASE_NAME = 'mnist_100'
 
 
 # ===========================================

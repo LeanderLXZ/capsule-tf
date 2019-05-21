@@ -11,15 +11,20 @@ from tqdm import tqdm
 from os import environ
 from os.path import join, isdir
 
-from config import config
 from models import utils
 from models.model import Model, ModelDistribute, ModelMultiTasks
-from model_arch import model_arch
 from test import Test, TestMultiObjects
 
+from config import config
+from config_fine_tune import config as config_ft
+from model_arch import model_arch
+
 from experiments.baseline_config import config as basel_cfg
+from experiments.baseline_config_fine_tune import config as basel_cfg_ft
 from experiments.baseline_arch import model_arch as basel_arch
+
 from experiments.hinton_config import config as hinton_cfg
+from experiments.hinton_config_fine_tune import config as hinton_cfg_ft
 from experiments.hinton_arch import model_arch as hinton_arch
 
 
@@ -42,9 +47,9 @@ class Main(object):
       self.tl_encode = False
     
     # Get paths from configuration
-    self.preprocessed_path, self.train_log_path, \
-        self.summary_path, self.checkpoint_path, \
-        self.train_image_path = self._get_paths()
+    self.preprocessed_path, self.train_log_path, self.summary_path, \
+        self.checkpoint_path, self.train_image_path, \
+        self.restore_checkpoint_path = self._get_paths()
 
     # Load data
     self.x_train, self.y_train, self.imgs_train, \
@@ -96,11 +101,10 @@ class Main(object):
 
     # Fine-tuning
     if self.fine_tune:
-      preprocessed_path = join(
-          self.cfg.DPP_DATA_PATH, self.cfg.FT_DATABASE_NAME)
-      self.restore_checkpoint_path = join(
-          self.cfg.CHECKPOINT_PATH, self.cfg.VERSION)
-      self.cfg.VERSION += '_ft'
+      restore_checkpoint_path = join(
+          self.cfg.CHECKPOINT_PATH, self.cfg.RESTORE_VERSION)
+    else:
+      restore_checkpoint_path = None
 
     train_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.cfg.VERSION)
     summary_path_ = join(self.cfg.SUMMARY_PATH, self.cfg.VERSION)
@@ -129,8 +133,8 @@ class Main(object):
       if self.cfg.SAVE_IMAGE_STEP:
         utils.check_dir([train_image_path])
 
-    return preprocessed_path, train_log_path, \
-        summary_path, checkpoint_path, train_image_path
+    return preprocessed_path, train_log_path, summary_path, \
+        checkpoint_path, train_image_path, restore_checkpoint_path
 
   def _load_data(self):
     """Load preprocessed data."""
@@ -479,7 +483,7 @@ class Main(object):
         during_training=during_training,
         epoch_train=epoch,
         step_train=step,
-        model_arch_info=self.model.model_arch_info,
+        model_arch_info=self.model.model_arch_info
     )
 
     if mode == 'single':
@@ -686,22 +690,22 @@ if __name__ == '__main__':
     print('Running baseline model.')
     utils.thick_line()
     arch_ = basel_arch
-    config_ = basel_cfg
+    config_ = basel_cfg_ft if args.fine_tune else basel_cfg
   elif args.hinton:
     print('Running Hinton\'s model.')
     utils.thick_line()
     arch_ = hinton_arch
-    config_ = hinton_cfg
+    config_ = hinton_cfg_ft if args.fine_tune else hinton_cfg
   else:
     arch_ = model_arch
-    config_ = config
+    config_ = config_ft if args.fine_tune else config
 
   if args.batch_size:
     config_.BATCH_SIZE = args.batch_size
 
   if args.task_number:
     config_.TASK_NUMBER = args.task_number
-    
+
   fine_tune_ = True if args.fine_tune else False
 
   Main(config_, arch_, mode=mode_, fine_tune=fine_tune_).train()

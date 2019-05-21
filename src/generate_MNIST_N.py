@@ -9,16 +9,16 @@ from os.path import join
 import sklearn.utils
 
 from models.utils import *
-from config import config
-from experiments.baseline_config import config as basel_cfg
+from config_fine_tune import config as config_ft
+from experiments.baseline_config_fine_tune import config as basel_config_ft
 
 
 class GenerateMNISTN(object):
 
-  def __init__(self, source_data_path, save_path, cfg):
+  def __init__(self, source_data_path, save_path, config):
     self.source_data_path = source_data_path
-    self.save_path = join(save_path, cfg.MN_DATABASE_NAME)
-    self.cfg = cfg
+    self.save_path = join(save_path, config.MN_DATABASE_NAME)
+    self.cfg = config
     self.train_images = None
     self.train_labels = None
     self.test_images = None
@@ -272,10 +272,10 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   if args.baseline:
-    cfg_ = basel_cfg
+    config_ = basel_config_ft
   else:
-    cfg_ = config
+    config_ = config_ft
 
   GenerateMNISTN(source_data_path=source_data_path_,
                  save_path=save_path_,
-                 cfg=cfg_).pipeline()
+                 config=config_).pipeline()
