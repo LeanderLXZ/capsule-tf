@@ -230,7 +230,7 @@ __C.EVAL_WITH_FULL_TRAIN_SET = False
 # None: Do not test
 
 # Evaluate on single-object test set
-__C.TEST_SO_MODE = 'after_training'  # 'per_epoch'
+__C.TEST_SO_MODE = 'per_epoch'  # 'after_training'
 
 # Evaluate on multi-objects test set
 __C.TEST_MO_MODE = None  # 'per_epoch'
@@ -260,7 +260,7 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
-__C.TOP_N_LIST = [2, 5]
+__C.TOP_N_LIST = [1, 2, 5]
 
 # -------------------------------------------
 # Multi-objects detection
