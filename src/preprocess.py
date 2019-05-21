@@ -9,6 +9,7 @@ import re
 import math
 import pickle
 import argparse
+from os import environ
 from PIL import Image
 import numpy as np
 import sklearn.utils
@@ -599,6 +600,8 @@ def save_bottleneck_features(config,
 
 
 if __name__ == '__main__':
+
+  environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
   global_seed = None
 
