@@ -630,7 +630,7 @@ if __name__ == '__main__':
     utils.thick_line()
     print('Running baseline model.')
     cfg_ = basel_cfg_ft if args.fine_tune else basel_cfg
-    database_name_ = basel_cfg.DATABASE_NAME
+    database_name_ = cfg_.DATABASE_NAME
   elif args.mnist:
     utils.thick_line()
     print('Preprocess the MNIST database.')
@@ -641,11 +641,8 @@ if __name__ == '__main__':
     database_name_ = 'cifar10'
   else:
     utils.thick_line()
-    print('Preprocess the MNIST database.')
-    database_name_ = 'mnist'
-
-  if args.fine_tune:
-    database_name_ = cfg_.FT_DATABASE_NAME
+    print('Preprocess the database in config.')
+    database_name_ = cfg_.DATABASE_NAME
 
   if args.tl1:
     DataPreProcess(config=cfg_,
