@@ -256,13 +256,13 @@ def print_full_set_eval(epoch_i, epochs, step, start_time,
   if with_full_set_eval:
     print('Full_Set_Train_Loss: {:.4f}'.format(loss_train))
     if with_rec:
-      print('Train_Classifier_Loss: {:.4f}\n'.format(clf_loss_train),
-            'Train_REC_LOSS: {:.4f}'.format(rec_loss_train))
+      print('Train_Classifier_Loss: {:.4f}'.format(clf_loss_train))
+      print('Train_REC_LOSS: {:.4f}'.format(rec_loss_train))
     print('Full_Set_Train_Accuracy: {:.4f}%'.format(acc_train * 100))
   print('Full_Set_Valid_Loss: {:.4f}'.format(loss_valid))
   if with_rec:
-    print('Valid_Classifier_Loss: {:.4f}\n'.format(clf_loss_valid),
-          'Reconstruction_Valid_Loss: {:.4f}'.format(rec_loss_valid))
+    print('Valid_Classifier_Loss: {:.4f}'.format(clf_loss_valid))
+    print('Reconstruction_Valid_Loss: {:.4f}'.format(rec_loss_valid))
   print('Full_Set_Valid_Accuracy: {:.4f}%'.format(acc_valid * 100))
 
 
@@ -281,7 +281,7 @@ def print_multi_obj_eval(precision, recall, accuracy,
   if top_n_list is not None:
     thin_line()
     for i, top_n in enumerate(top_n_list):
-      print('Top_{} Precision: {:.4f} \n'.format(
+      print('Top_{} Precision: {:.4f}'.format(
           top_n, precision_top_n_list[i]))
 
 
@@ -372,7 +372,7 @@ def save_test_log(file_path, loss_test, acc_test,
     if top_n_list is not None:
       f.write('-' * 55 + '\n')
       for i, top_n in enumerate(top_n_list):
-        f.write('Top_{} Test Accuracy: {:.4f} \n'.format(
+        f.write('Top_{} Test Accuracy: {:.4f}\n'.format(
             top_n, acc_top_n_list[i]))
 
     f.write('=' * 55)
@@ -440,17 +440,17 @@ def save_multi_obj_scores(file_path, precision, recall,
     f.write('=' * 55 + '\n')
     f.write('Time: {}\n'.format(local_time))
     f.write('-' * 55 + '\n')
-    f.write('Precision: {:.4f} \n'.format(precision))
-    f.write('Recall: {:.4f} \n'.format(recall))
-    f.write('Accuracy: {:.4f} \n'.format(accuracy))
-    f.write('F_1 Score: {:.4f} \n'.format(f1score))
-    f.write('F_0.5 Score: {:.4f} \n'.format(f05score))
-    f.write('F_2 Score: {:.4f} \n'.format(f2score))
+    f.write('Precision: {:.4f}\n'.format(precision))
+    f.write('Recall: {:.4f}\n'.format(recall))
+    f.write('Accuracy: {:.4f}\n'.format(accuracy))
+    f.write('F_1 Score: {:.4f}\n'.format(f1score))
+    f.write('F_0.5 Score: {:.4f}\n'.format(f05score))
+    f.write('F_2 Score: {:.4f}\n'.format(f2score))
 
     if top_n_list is not None:
       f.write('-' * 55 + '\n')
       for i, top_n in enumerate(top_n_list):
-        f.write('Top_{} Precision: {:.4f}% \n'.format(
+        f.write('Top_{} Precision: {:.4f}%\n'.format(
             top_n, precision_top_n_list[i] * 100))
 
     f.write('=' * 55)
@@ -471,11 +471,6 @@ def save_multi_obj_scores_is_training(file_path, epoch, step, precision, recall,
           header.append('Top_{}_Precision'.format(top_n))
       writer = csv.writer(f)
       writer.writerow(header)
-
-      if top_n_list is not None:
-        for i, top_n in enumerate(top_n_list):
-          header.append('Top_{}_Precision: {:.4f}% \n'.format(
-              top_n, precision_top_n_list[i] * 100))
 
   with open(file_path, 'a') as f:
     local_time = time.strftime(

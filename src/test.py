@@ -385,13 +385,13 @@ class Test(object):
     utils.thin_line()
     print('Test Loss: {:.4f}'.format(loss_test))
     if self.cfg.TEST_WITH_REC:
-      print('Test Classifier Loss: {:.4f}\n'.format(clf_loss_test),
-            'Test Reconstruction Loss: {:.4f}'.format(rec_loss_test))
+      print('Test Classifier Loss: {:.4f}'.format(clf_loss_test))
+      print('Test Reconstruction Loss: {:.4f}'.format(rec_loss_test))
     print('Test Accuracy: {:.4f}%'.format(acc_test * 100))
     if self.cfg.TOP_N_LIST is not None:
       utils.thin_line()
       for i, top_n in enumerate(self.cfg.TOP_N_LIST):
-        print('Top_{} Test Accuracy: {:.4f}% \n'.format(
+        print('Top_{} Test Accuracy: {:.4f}%'.format(
             top_n, acc_top_n_list[i] * 100))
 
     # Save test log
