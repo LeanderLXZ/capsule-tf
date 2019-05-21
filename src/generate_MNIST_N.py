@@ -173,20 +173,22 @@ class GenerateMNISTN(object):
 
     return images, labels
 
-  @staticmethod
-  def _shuffle(x, y, seed=None):
+  def _shuffle(self, seed=None):
 
     print('Shuffling images and labels...')
-    return sklearn.utils.shuffle(x, y, random_state=seed)
+    self.train_images, self.train_labels = sklearn.utils.shuffle(
+        self.train_images, self.train_labels, random_state=seed)
+    self.test_images, self.test_labels = sklearn.utils.shuffle(
+        self.test_images, self.test_labels, random_state=seed)
 
   @staticmethod
-  def csv_gen():
+  def _save_csv(file_path):
     title = ['num', 'loop', 'turn', 'cross']
     for i in range(10):
       title.append(i)
 
     list_ = []
-    csv_file = open('./feature.csv', 'a', newline='')
+    csv_file = open(join(file_path, 'features.csv'), 'a', newline='')
     writer = csv.writer(csv_file, dialect='excel')
     writer.writerow(title)
     for i in range(100):
@@ -235,7 +237,7 @@ class GenerateMNISTN(object):
     self.train_images, self.train_labels = self._data_gen(
         self.train_images,
         self.train_labels,
-        num_in_class=self.cfg.MN_NUM_IN_CLASS,
+        num_in_class=self.cfg.MN_NUM_IN_CLASS_TRAIN,
         num_range=self.cfg.MN_NUM_RANGE,
         img_size=self.cfg.MN_IMAGE_SIZE,
         rotate_range=self.cfg.MN_ROTATE_RANGE
@@ -243,18 +245,17 @@ class GenerateMNISTN(object):
     self.test_images, self.test_labels = self._data_gen(
         self.test_images,
         self.test_labels,
-        num_in_class=self.cfg.MN_NUM_IN_CLASS,
+        num_in_class=self.cfg.MN_NUM_IN_CLASS_TEST,
         num_range=self.cfg.MN_NUM_RANGE,
         img_size=self.cfg.MN_IMAGE_SIZE,
         rotate_range=self.cfg.MN_ROTATE_RANGE
     )
 
-    self.train_images, self.train_labels = self._shuffle(
-        self.train_images, self.train_labels)
-    self.test_images, self.test_labels = self._shuffle(
-        self.test_images, self.test_labels)
+    self._shuffle()
 
     self._save_data()
+    
+    self._save_csv(self.save_path)
 
     print('Done! Using {:.4}s'.format(time.time() - start_time))
 

@@ -387,6 +387,9 @@ class DataPreProcess(object):
     if self.data_base_name == 'mnist':
       n_classes = 10
       input_size = (*self.input_size, 1)
+    elif 'mnist' in self.data_base_name:
+      n_classes = len(range(*self.cfg.MN_NUM_RANGE)) + 1
+      input_size = (*self.input_size, 1)
     elif self.data_base_name == 'cifar10':
       n_classes = 10
       input_size = (*self.input_size, 3)

@@ -140,14 +140,13 @@ def load_large_data_from_pkl(data_path,
             data_path_i, size_batch, verbose=verbose, add_n_batch=add_n_batch))
       else:
         data.append(pickle.load(f))
-  concat = np.concatenate(data, axis=0)
-  assert concat.shape[1:] == data[0].shape[1:]
+  data = np.concatenate(data, axis=0)
 
   if verbose:
-    print('Total Size: {:.4}Gb'.format(concat / (10**9)))
-    print('Data Shape: ', concat.shape)
+    print('Total Size: {:.4}Gb'.format(data.nbytes / (10**9)))
+    print('Data Shape: ', data.shape)
 
-  return concat
+  return data
 
 
 def load_data_tl(file_path,
