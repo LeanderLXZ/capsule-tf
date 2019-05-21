@@ -52,7 +52,7 @@ __C.LR_DECAY_STEPS = 2000
 __C.LR_DECAY_RATE = 0.96
 
 # Epochs
-__C.EPOCHS = 20
+__C.EPOCHS = 1
 
 # Batch size
 __C.BATCH_SIZE = 512

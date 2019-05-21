@@ -20,6 +20,8 @@ class Test(object):
 
   def __init__(self,
                cfg,
+               mode='test',
+               test_data=None,
                multi_gpu=False,
                version=None,
                load_last_ckp=True,
@@ -30,6 +32,7 @@ class Test(object):
 
     # Config
     self.cfg = cfg
+    self.mode = mode
     self.multi_gpu = multi_gpu
     self.version = version
     self.load_last_ckp = load_last_ckp
@@ -52,7 +55,10 @@ class Test(object):
     utils.save_config_log(self.test_log_path, self.cfg, model_arch_info)
 
     # Load data
-    self.x_test, self.y_test, self.imgs_test = self._load_data()
+    if test_data is None:
+      self.x_test, self.y_test, self.imgs_test = self._load_data()
+    else:
+      self.x_test, self.y_test, self.imgs_test = *test_data
 
   @property
   def info(self):
@@ -73,10 +79,19 @@ class Test(object):
 
   def _get_paths(self):
     """Get paths for testing."""
+    if self.mode == 'test':
+      test_log_path_ = self.cfg.TEST_LOG_PATH
+    else:
+      test_log_path_ = self.cfg.TRAIN_LOG_PATH
+    
     if self.during_training:
       # Get log path
-      test_log_path_ = join(
-          self.cfg.TEST_LOG_PATH, self.version) + self.append_info
+      if self.mode == 'valid':
+        test_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.version)
+      else:
+        test_log_path_ = join(
+            self.cfg.TEST_LOG_PATH, self.version) + self.append_info
+        
       test_log_path = test_log_path_
       i_append_info = 0
       if self.epoch_train == 0:
@@ -103,9 +118,13 @@ class Test(object):
           '{}/models.ckpt-{}'.format(self.version, ckp_idx))
 
       # Get log path, append information if the directory exist.
-      test_log_path_ = join(
-          self.cfg.TEST_LOG_PATH,
-          '{}-{}'.format(self.version, ckp_idx)) + self.append_info
+      if self.mode == 'valid':
+        test_log_path_ = join(self.cfg.TRAIN_LOG_PATH, self.version)
+      else:
+        test_log_path_ = join(
+            self.cfg.TEST_LOG_PATH,
+            '{}-{}'.format(self.version, ckp_idx)) + self.append_info
+      
       test_log_path = test_log_path_
       i_append_info = 0
       while isdir(test_log_path):
@@ -192,10 +211,11 @@ class Test(object):
     """Get top N accuracy."""
     accuracy_top_n_list = []
     for top_n in self.cfg.TOP_N_LIST:
+      i = 0
       accuracy_top_n = []
       for pred_vec, y_true in zip(preds_vec, self.y_test):
         y_pred_idx_top_n = np.argsort(pred_vec)[-top_n:]
-        y_true_idx = np.argmax(pred_vec)
+        y_true_idx = np.argmax(y_true)
         if y_true_idx in y_pred_idx_top_n:
           accuracy_top_n.append(1)
         else:
@@ -853,3 +873,13 @@ class TestMultiObjects(Test):
 
       self.tester(sess, inputs, labels, input_imgs, is_training,
                   clf_preds, rec_imgs, start_time)
+
+      
+if __name__ == '__main__':
+  
+  from config import config
+  
+  Test(config, 
+       multi_gpu=True,
+       version='mnist_fc_mse').test()
+      

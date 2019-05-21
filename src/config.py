@@ -260,7 +260,7 @@ __C.TEST_BATCH_SIZE = __C.BATCH_SIZE
 
 # Top_N precision and accuracy
 # If None, do not calculate Top_N.
-__C.TOP_N_LIST = [2, 5]
+__C.TOP_N_LIST = [1, 2, 5]
 
 # -------------------------------------------
 # Multi-objects detection
