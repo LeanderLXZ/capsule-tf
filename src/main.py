@@ -39,13 +39,13 @@ class Main(object):
     self.cfg = cfg
     self.fine_tune = fine_tune
     self.multi_gpu = True
-    
+
     # Use encode transfer learning
     if self.cfg.TRANSFER_LEARNING == 'encode':
       self.tl_encode = True
     else:
       self.tl_encode = False
-    
+
     # Get paths from configuration
     self.preprocessed_path, self.train_log_path, self.summary_path, \
         self.checkpoint_path, self.train_image_path, \
@@ -58,13 +58,13 @@ class Main(object):
     # Calculate number of batches
     self.n_batch_train = len(self.y_train) // cfg.BATCH_SIZE
     self.n_batch_valid = len(self.y_valid) // cfg.BATCH_SIZE
-    
+
     # Restore a pre-trained model
     if self.fine_tune:
       restore_vars_dict = self._get_restore_vars_dict()
     else:
       restore_vars_dict = None
-    
+
     # Get model
     if mode == 'multi-tasks':
       self.multi_gpu = True
@@ -178,10 +178,10 @@ class Main(object):
   def _get_restore_vars_dict(self):
     """Load pre-trained variables."""
     utils.thick_line()
-    print('Loading pre-trained variables from:\n', 
+    print('Loading pre-trained variables from:\n',
           self.restore_checkpoint_path)
     utils.thin_line()
-    
+
     tf.reset_default_graph()
     loaded_graph = tf.Graph()
 

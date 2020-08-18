@@ -385,7 +385,7 @@ class CapsuleV2(ModelBase):
                act_fn='squash_v2',
                use_bias=False,
                idx=0):
-    """Single convolution layer
+    """Capsule layer version 2.0
 
     Args:
       cfg: configuration
@@ -783,7 +783,7 @@ class Mask(ModelBase):
     self.labels = labels
 
   def __call__(self, inputs):
-    """Reshape a tensor.
+    """Get masked tensor.
 
     Args:
       inputs: input tensor

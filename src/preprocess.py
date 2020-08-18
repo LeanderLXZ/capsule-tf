@@ -662,4 +662,4 @@ if __name__ == '__main__':
     DataPreProcess(config=cfg_,
                    seed=global_seed,
                    data_base_name=database_name_,
-                   show_img=show_img_flag).pipeline()
+                   show_img=True).pipeline()
